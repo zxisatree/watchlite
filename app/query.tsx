@@ -15,17 +15,55 @@ export function initGapi(
   })
 }
 
+export function sendVideoStatsRequest(
+  videoIds: string[],
+  setVideoResults: Dispatch<SetStateAction<gapi.client.youtube.Video[] | null>>,
+) {
+  const videoListRequest = gapi.client.youtube.videos.list({
+    part: 'snippet,statistics',
+    id: videoIds.join(),
+  })
+
+  videoListRequest.execute(function (
+    response: gapi.client.Response<gapi.client.youtube.VideoListResponse>,
+  ) {
+    const videoList = response.result
+    setVideoResults(videoList.items || [])
+  })
+}
+
+export function sendChannelThumbnailRequest(
+  channelIds: string[],
+  setChannelResults: Dispatch<
+    SetStateAction<gapi.client.youtube.Channel[] | null>
+  >,
+) {
+  const channelListRequest = gapi.client.youtube.channels.list({
+    part: 'snippet',
+    id: channelIds.join(),
+  })
+
+  channelListRequest.execute(function (
+    response: gapi.client.Response<gapi.client.youtube.ChannelListResponse>,
+  ) {
+    const channelList = response.result
+    setChannelResults(channelList.items || [])
+  })
+}
+
 export function sendQueryRequest(
   queryString: string,
-  setResults: Dispatch<SetStateAction<gapi.client.youtube.SearchResult[]>>,
+  setSearchResults: Dispatch<
+    SetStateAction<gapi.client.youtube.SearchResult[] | null>
+  >,
 ) {
-  const request = gapi.client.youtube.search.list({
+  const searchListRequest = gapi.client.youtube.search.list({
     part: 'snippet',
     q: queryString,
     maxResults: 10,
   })
 
-  request.execute(function (
+  searchListRequest.execute(function (
     response: gapi.client.Response<gapi.client.youtube.SearchListResponse>,
   ) {
     const searchList = response.result
@@ -33,6 +71,6 @@ export function sendQueryRequest(
     // console.log(searchList);
     // console.log("items:");
     // console.log(searchList.items?.map((item) => item.snippet));
-    setResults(searchList.items || [])
+    setSearchResults(searchList.items || [])
   })
 }

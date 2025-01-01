@@ -7,6 +7,7 @@ export default async function Home() {
 
   return (
     <>
+      <div className='sticky top-0'>header</div>
       <div className='flex flex-col justify-center items-center'>
         <Search apiKey={apiKey} />
       </div>
