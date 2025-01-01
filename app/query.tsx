@@ -1,34 +1,38 @@
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction } from 'react'
 
-export function initGapi(apiKey: string) {
-  gapi.load("client", async function () {
+export function initGapi(
+  apiKey: string,
+  setIsInitialised: Dispatch<SetStateAction<boolean>>,
+) {
+  gapi.load('client', async function () {
     gapi.client.init({
       apiKey: apiKey,
       discoveryDocs: [
-        "https://youtube.googleapis.com/$discovery/rest?version=v3",
+        'https://youtube.googleapis.com/$discovery/rest?version=v3',
       ],
-    });
-  });
+    })
+    setIsInitialised(true)
+  })
 }
 
 export function sendQueryRequest(
   queryString: string,
-  setResults: Dispatch<SetStateAction<gapi.client.youtube.SearchResult[]>>
+  setResults: Dispatch<SetStateAction<gapi.client.youtube.SearchResult[]>>,
 ) {
   const request = gapi.client.youtube.search.list({
-    part: "snippet",
+    part: 'snippet',
     q: queryString,
     maxResults: 10,
-  });
+  })
 
   request.execute(function (
-    response: gapi.client.Response<gapi.client.youtube.SearchListResponse>
+    response: gapi.client.Response<gapi.client.youtube.SearchListResponse>,
   ) {
-    const searchList = response.result;
+    const searchList = response.result
     // console.log("results:");
     // console.log(searchList);
     // console.log("items:");
     // console.log(searchList.items?.map((item) => item.snippet));
-    setResults(searchList.items || []);
-  });
+    setResults(searchList.items || [])
+  })
 }
