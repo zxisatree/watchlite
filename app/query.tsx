@@ -74,3 +74,18 @@ export function sendQueryRequest(
     setSearchResults(searchList.items || [])
   })
 }
+
+export function getSubscriptions() {
+  const subscriptionsRequest = gapi.client.youtube.subscriptions.list({
+    part: 'contentDetails,id,snippet,subscriberSnippet',
+    mine: true,
+  })
+
+  subscriptionsRequest.execute(function (
+    response: gapi.client.Response<gapi.client.youtube.SubscriptionListResponse>,
+  ) {
+    const subscriptions = response.result
+    console.log('subscriptions result:')
+    console.log(subscriptions)
+  })
+}

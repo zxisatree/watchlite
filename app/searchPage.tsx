@@ -1,17 +1,26 @@
 'use client'
 
 import Search from './search'
-import { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import {
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useState,
+} from 'react'
+import {
+  getSubscriptions,
   initGapi,
   sendChannelThumbnailRequest,
   sendQueryRequest,
   sendVideoStatsRequest,
 } from './query'
+import { useRouter } from 'next/navigation'
+import { EnvContext } from './ctxt'
 
-type SearchPageProps = {
-  apiKey: string
-}
+// type SearchPageProps = {
+//   envVars: { [index: string]: string }
+// }
 
 type FullSearchResult = {
   searchResult: gapi.client.youtube.SearchResult
@@ -36,7 +45,9 @@ function sendQuery(
   sendQueryRequest(searchQuery, setSearchResults)
 }
 
-export default function SearchPage({ apiKey }: SearchPageProps) {
+export default function SearchPage() {
+  const router = useRouter()
+  const envContext = useContext(EnvContext)
   const [isInitialised, setIsInitialised] = useState(false)
   const [searchQuery, setSearchQuery] = useState('types of coffee')
   const [searchResults, setSearchResults] = useState<
@@ -119,16 +130,47 @@ export default function SearchPage({ apiKey }: SearchPageProps) {
     }
   }, [searchResults, videoResults, channelResults])
 
+  function oauthRedirect() {
+    const state = 'test_oauth'
+    const client_id = envContext['GAPI_CLIENT_ID']
+    const callback_link = 'http://localhost:3000/oauth2callback'
+    const link = `https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/youtube.readonly&response_type=code&access_type=offline&state=${state}&redirect_uri=${callback_link}&client_id=${client_id}`
+    console.log(`client_id: ${client_id}`)
+    router.push(link)
+    // url: ?state=test_oauth&code=4/0AanRRrudRnP33cRAVwnhXv4dvmPuI6udhQMdzmBIJHYtT0Gio6vwq2Lk7EVBGIjLf6oCVQ&scope=https://www.googleapis.com/auth/youtube.readonly
+    // https://www.googleapis.com/auth/youtube.readonly
+    // https://www.googleapis.com/auth/youtube
+    // https://oauth2.googleapis.com/token
+  }
+
   return (
     <div>
       <div className='sticky top-0 flex flex-row p-8'>
         <button
           type='button'
           className='focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900 disabled:bg-red-300'
-          onClick={() => init(apiKey, setIsInitialised)}
+          onClick={() =>
+            init(envContext['YOUTUBE_API_KEY'] || '', setIsInitialised)
+          }
           disabled={isInitialised}
         >
           {isInitialised ? 'Initialised!' : 'Initialise'}
+        </button>
+        <button
+          type='button'
+          className='focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-900 disabled:bg-green-300'
+          onClick={getSubscriptions}
+          disabled={!isInitialised}
+        >
+          Get subscriptions
+        </button>
+        <button
+          type='button'
+          className='focus:outline-none text-white bg-yellow-700 hover:bg-yellow-800 focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-yellow-600 dark:hover:bg-yellow-700 dark:focus:ring-yellow-900 disabled:bg-yellow-300'
+          onClick={oauthRedirect}
+          // disabled={!isInitialised}
+        >
+          OAuth
         </button>
         <input
           type='text'
