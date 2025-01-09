@@ -67,28 +67,52 @@ export function sendQueryRequest(
     response: gapi.client.Response<gapi.client.youtube.SearchListResponse>,
   ) {
     const searchList = response.result
-    // console.log("results:");
-    // console.log(searchList);
-    // console.log("items:");
-    // console.log(searchList.items?.map((item) => item.snippet));
     setSearchResults(searchList.items || [])
   })
 }
 
-export function getSubscriptions(accessToken: string) {
-  const subscriptionsRequest = gapi.client.youtube.subscriptions.list({
+export function sendSubscriptionsListRequest(
+  accessToken: string,
+  setSubscriptions: Dispatch<
+    SetStateAction<gapi.client.youtube.Subscription[] | null>
+  >,
+) {
+  const baseParams = {
     access_token: accessToken,
     part: 'contentDetails,id,snippet,subscriberSnippet',
     mine: true,
-  })
+  }
+  const subscriptionsRequest =
+    gapi.client.youtube.subscriptions.list(baseParams)
 
-  console.log(`getSubscriptions access_token: ${accessToken}`)
+  let allSubscriptions: gapi.client.youtube.Subscription[] = []
 
-  subscriptionsRequest.execute(function (
+  function handleSubscriptionResponse(
     response: gapi.client.Response<gapi.client.youtube.SubscriptionListResponse>,
   ) {
-    const subscriptions = response.result
-    console.log('subscriptions result:')
-    console.log(subscriptions)
-  })
+    const responseResult = response.result
+    const responseItems = responseResult.items
+
+    if (!responseItems) {
+      return
+    }
+
+    allSubscriptions = allSubscriptions.concat(responseItems)
+    const nextPageToken = responseResult.nextPageToken
+
+    if (nextPageToken) {
+      const nextPageParams = {
+        ...baseParams,
+        pageToken: nextPageToken,
+      }
+      const nextPageRequest =
+        gapi.client.youtube.subscriptions.list(nextPageParams)
+      console.log(`nextPageToken: ${nextPageToken}`)
+      nextPageRequest.execute(handleSubscriptionResponse)
+    } else {
+      setSubscriptions(allSubscriptions)
+    }
+  }
+
+  subscriptionsRequest.execute(handleSubscriptionResponse)
 }

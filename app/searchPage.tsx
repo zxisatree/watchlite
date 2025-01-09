@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react'
 import {
-  getSubscriptions,
+  sendSubscriptionsListRequest,
   initGapi,
   sendChannelThumbnailRequest,
   sendQueryRequest,
@@ -69,6 +69,9 @@ export default function SearchPage() {
   const [fullResults, setFullResults] = useState<FullSearchResult[] | null>(
     null,
   )
+  const [subscriptions, setSubscriptions] = useState<
+    gapi.client.youtube.Subscription[] | null
+  >(null)
 
   const oauthError = localStorage.getItem('oauthError')
   const oauthTokenRaw = localStorage.getItem('oauthToken')
@@ -188,7 +191,9 @@ export default function SearchPage() {
         <button
           type='button'
           className='focus:outline-none text-white bg-green-700 enabled:hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-green-600 enabled:dark:hover:bg-green-700 dark:focus:ring-green-900 disabled:bg-green-300'
-          onClick={() => getSubscriptions(accessToken)}
+          onClick={() =>
+            sendSubscriptionsListRequest(accessToken, setSubscriptions)
+          }
           disabled={!isInitialised}
         >
           Get subscriptions
@@ -209,6 +214,16 @@ export default function SearchPage() {
         </button>
       </div>
       <div className='flex flex-col justify-center items-center'>
+        Subscriptions
+        {subscriptions?.map(subscription => (
+          <div key={subscription.id}>
+            {subscription.snippet?.title} -{' '}
+            {subscription.snippet?.resourceId?.channelId}
+          </div>
+        ))}
+      </div>
+      <div className='flex flex-col justify-center items-center border-t-2'>
+        Search results
         <Search fullResults={fullResults} />
       </div>
     </div>
