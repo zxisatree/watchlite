@@ -75,11 +75,14 @@ export function sendQueryRequest(
   })
 }
 
-export function getSubscriptions() {
+export function getSubscriptions(accessToken: string) {
   const subscriptionsRequest = gapi.client.youtube.subscriptions.list({
+    access_token: accessToken,
     part: 'contentDetails,id,snippet,subscriberSnippet',
     mine: true,
   })
+
+  console.log(`getSubscriptions access_token: ${accessToken}`)
 
   subscriptionsRequest.execute(function (
     response: gapi.client.Response<gapi.client.youtube.SubscriptionListResponse>,

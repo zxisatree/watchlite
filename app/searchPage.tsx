@@ -28,6 +28,13 @@ type FullSearchResult = {
   channel?: gapi.client.youtube.Channel
 }
 
+type OauthTokenState = {
+  access_token: string
+  expires_in: number
+  scope: string
+  token_type: string
+}
+
 function init(
   apiKey: string,
   setIsInitialised: Dispatch<SetStateAction<boolean>>,
@@ -62,6 +69,20 @@ export default function SearchPage() {
   const [fullResults, setFullResults] = useState<FullSearchResult[] | null>(
     null,
   )
+
+  const oauthError = localStorage.getItem('oauthError')
+  const oauthTokenRaw = localStorage.getItem('oauthToken')
+  const oauthTokenState: OauthTokenState =
+    oauthTokenRaw !== null && JSON.parse(oauthTokenRaw)
+  const accessToken = oauthTokenState?.access_token
+  if (oauthError !== null) {
+    console.error(oauthError)
+    localStorage.removeItem('oauthError')
+  }
+  if (oauthTokenRaw !== null) {
+    console.log('Acquired oauth token:')
+    console.log(oauthTokenState)
+  }
 
   //   console.log('searchResults:')
   //   console.log(searchResults)
@@ -148,7 +169,15 @@ export default function SearchPage() {
       <div className='sticky top-0 flex flex-row p-8'>
         <button
           type='button'
-          className='focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900 disabled:bg-red-300'
+          className='focus:outline-none text-white bg-yellow-700 hover:bg-yellow-800 focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-yellow-600 dark:hover:bg-yellow-700 dark:focus:ring-yellow-900 disabled:bg-yellow-300'
+          onClick={oauthRedirect}
+          // disabled={!isInitialised}
+        >
+          OAuth
+        </button>
+        <button
+          type='button'
+          className='focus:outline-none text-white bg-red-700 enabled:hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-red-600 enabled:dark:hover:bg-red-700 dark:focus:ring-red-900 disabled:bg-red-300'
           onClick={() =>
             init(envContext['YOUTUBE_API_KEY'] || '', setIsInitialised)
           }
@@ -158,19 +187,11 @@ export default function SearchPage() {
         </button>
         <button
           type='button'
-          className='focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-900 disabled:bg-green-300'
-          onClick={getSubscriptions}
+          className='focus:outline-none text-white bg-green-700 enabled:hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-green-600 enabled:dark:hover:bg-green-700 dark:focus:ring-green-900 disabled:bg-green-300'
+          onClick={() => getSubscriptions(accessToken)}
           disabled={!isInitialised}
         >
           Get subscriptions
-        </button>
-        <button
-          type='button'
-          className='focus:outline-none text-white bg-yellow-700 hover:bg-yellow-800 focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-yellow-600 dark:hover:bg-yellow-700 dark:focus:ring-yellow-900 disabled:bg-yellow-300'
-          onClick={oauthRedirect}
-          // disabled={!isInitialised}
-        >
-          OAuth
         </button>
         <input
           type='text'
@@ -180,7 +201,7 @@ export default function SearchPage() {
         />
         <button
           type='button'
-          className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800'
+          className='focus:outline-none text-white bg-blue-700 enabled:hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 enabled:dark:hover:bg-blue-700 dark:focus:ring-blue-800 disabled:bg-blue-300'
           onClick={() => sendQuery(searchQuery, setSearchResults)}
           disabled={!isInitialised}
         >

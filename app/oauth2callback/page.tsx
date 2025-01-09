@@ -1,11 +1,12 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useContext, useEffect } from 'react'
 import { EnvContext } from '../ctxt'
 import Link from 'next/link'
 
 export default function OauthCallbackPage() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const envContext = useContext(EnvContext)
 
@@ -34,12 +35,16 @@ export default function OauthCallbackPage() {
       body: new URLSearchParams(params),
     })
       .then(response => response.json())
-      .then(data => console.log(data))
-      .catch(err => console.error(err))
+      .then(data => {
+        localStorage.setItem('oauthToken', JSON.stringify(data))
+        router.push('/')
+      })
+      .catch(err => {
+        localStorage.setItem('oauthError', err)
+        router.push('/')
+      })
   }, [])
 
-  // console.log(`code: ${code}`)
-  // console.log(envContext)
   return (
     <div>
       hello, welcome to oauth land.
