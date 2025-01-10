@@ -1,18 +1,13 @@
 'use client'
 
 import SearchResult from './searchResult'
-
-type FullSearchResult = {
-  searchResult: gapi.client.youtube.SearchResult
-  video?: gapi.client.youtube.Video
-  channel?: gapi.client.youtube.Channel
-}
+import { FullSearchResult } from '../app/types'
 
 type SearchProps = {
   fullResults: FullSearchResult[] | null
 }
 
-export default function Search({ fullResults }: SearchProps) {
+export default function SearchResultList({ fullResults }: SearchProps) {
   // Will return empty string if result.is is null
   function keyResultById(result: FullSearchResult): string {
     return [

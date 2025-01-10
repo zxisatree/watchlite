@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
-import Script from 'next/script'
 import CtxtWrapper from './ctxt'
+import GapiScript from '../components/gapi'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   const envVars = {
-    YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY || '',
+    GAPI_API_KEY: process.env.GAPI_API_KEY || '',
     GAPI_CLIENT_ID: process.env.GAPI_CLIENT_ID || '',
     GAPI_CLIENT_SECRET: process.env.GAPI_CLIENT_SECRET || '',
   }
@@ -34,11 +34,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full`}
       >
-        <Script
-          src='https://apis.google.com/js/api.js'
-          strategy='beforeInteractive'
-        />
-        <CtxtWrapper envVars={envVars}>{children}</CtxtWrapper>
+        <CtxtWrapper envVars={envVars}>
+          <GapiScript />
+          {children}
+        </CtxtWrapper>
       </body>
     </html>
   )

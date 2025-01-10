@@ -4,6 +4,7 @@ export function initGapi(
   apiKey: string,
   setIsInitialised: Dispatch<SetStateAction<boolean>>,
 ) {
+  console.log('Initialising...')
   gapi.load('client', async function () {
     gapi.client.init({
       apiKey: apiKey,
@@ -11,6 +12,7 @@ export function initGapi(
         'https://youtube.googleapis.com/$discovery/rest?version=v3',
       ],
     })
+    console.log('Initialised.')
     setIsInitialised(true)
   })
 }
@@ -116,3 +118,58 @@ export function sendSubscriptionsListRequest(
 
   subscriptionsRequest.execute(handleSubscriptionResponse)
 }
+
+export function stringifyCount(
+  countResponse: string,
+  decimalPlaces: number = 2,
+) {
+  const parsedCount = Number.parseInt(countResponse)
+
+  if (parsedCount < 1000) {
+    return parsedCount.toString()
+  }
+
+  const cutoffs = [1000, 1000 ** 2, 1000 ** 3, 1000 ** 4]
+  const prefixIndex = cutoffs.findLastIndex(cutoff => parsedCount >= cutoff)
+  const prefixes = ['K', 'M', 'B', 'T']
+  return (
+    (parsedCount / cutoffs[prefixIndex]).toFixed(decimalPlaces) +
+    prefixes[prefixIndex]
+  )
+}
+
+/**
+ * Taken from https://gist.github.com/LewisJEllis/9ad1f35d102de8eee78f6bd081d486ad
+ */
+function stringifyDateRelativelyFactory(lang = 'en') {
+  const cutoffs = [
+    60,
+    3600,
+    86400,
+    86400 * 7,
+    86400 * 30,
+    86400 * 365,
+    Infinity,
+  ]
+  const units: Intl.RelativeTimeFormatUnit[] = [
+    'second',
+    'minute',
+    'hour',
+    'day',
+    'week',
+    'month',
+    'year',
+  ]
+  const rtf = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' })
+  return function stringifyDateRelatively(dateString: string): string {
+    const date = new Date(dateString)
+    const deltaSeconds = Math.round((date.getTime() - Date.now()) / 1000)
+    const unitIndex = cutoffs.findIndex(
+      cutoff => cutoff > Math.abs(deltaSeconds),
+    )
+    const divisor = unitIndex ? cutoffs[unitIndex - 1] : 1
+    return rtf.format(Math.round(deltaSeconds / divisor), units[unitIndex])
+  }
+}
+
+export const stringifyDateRelatively = stringifyDateRelativelyFactory()

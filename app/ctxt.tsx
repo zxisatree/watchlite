@@ -1,27 +1,35 @@
 'use client'
 
-import { createContext } from 'react'
-
-type EnvContextType = {
-  YOUTUBE_API_KEY: string
-  GAPI_CLIENT_ID: string
-  GAPI_CLIENT_SECRET: string
-}
+import { createContext, useState } from 'react'
+import { EnvContextType } from './types'
 
 type CtxtWrapperProps = {
-  envVars: EnvContextType
+  envVars: {
+    GAPI_API_KEY: string
+    GAPI_CLIENT_ID: string
+    GAPI_CLIENT_SECRET: string
+  }
   children: React.ReactNode
 }
 
 export const EnvContext = createContext<EnvContextType>({
-  YOUTUBE_API_KEY: '',
+  GAPI_API_KEY: '',
   GAPI_CLIENT_ID: '',
   GAPI_CLIENT_SECRET: '',
+  gapiIsInitialised: false,
+  setGapiIsInitialised: () => {},
 })
 
 export default function CtxtWrapper({
   envVars,
   children,
 }: Readonly<CtxtWrapperProps>) {
-  return <EnvContext.Provider value={envVars}>{children}</EnvContext.Provider>
+  const [gapiIsInitialised, setGapiIsInitialised] = useState(false)
+  return (
+    <EnvContext.Provider
+      value={{ ...envVars, gapiIsInitialised, setGapiIsInitialised }}
+    >
+      {children}
+    </EnvContext.Provider>
+  )
 }
