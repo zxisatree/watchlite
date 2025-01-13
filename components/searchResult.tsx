@@ -9,22 +9,20 @@ type SearchResultProps = {
 }
 
 export default function SearchResult({ fullResult }: SearchResultProps) {
-  const defaultVideoThumbnail =
-    fullResult.searchResult.snippet?.thumbnails?.high
+  const defaultVideoThumbnail = fullResult.video?.snippet?.thumbnails?.high
   const defaultChannelThumbnail =
     fullResult.channel?.snippet?.thumbnails?.default
   const defaultUrl = defaultVideoThumbnail?.url
-  // console.log(fullResult.searchResult.snippet)
   return (
     <Link
-      href={`/play?v=${fullResult.searchResult.id?.videoId}`}
+      href={`/play?v=${fullResult.video?.id}`}
       className='w-[70%] p-2 border-black border flex flex-row'
     >
       <div className='w-[30%] flex-shrink-0 flex-grow-0'>
         <div className='w-[95%]'>
           <Image
-            src={defaultUrl || 'default_thumbnail.png'}
-            alt={`${fullResult.searchResult.snippet?.title}thumbnail`}
+            src={defaultUrl || '/default_thumbnail.png'}
+            alt={`${fullResult.video?.snippet?.title} thumbnail`}
             width={defaultVideoThumbnail ? defaultVideoThumbnail.width : 480}
             height={defaultVideoThumbnail ? defaultVideoThumbnail.height : 360}
           />
@@ -32,7 +30,7 @@ export default function SearchResult({ fullResult }: SearchResultProps) {
       </div>
       <div className='w-[70%]'>
         <h5 className='flex-shrink-0 flex-grow-0 mb-2 text-xl font-bold'>
-          {fullResult.searchResult.snippet?.title || 'Title not found'}
+          {fullResult.video?.snippet?.title || 'Title not found'}
         </h5>
         <div
           // href={fullResult.channel?.snippet?.customUrl || ''}
@@ -40,13 +38,13 @@ export default function SearchResult({ fullResult }: SearchResultProps) {
         >
           <Image
             className='rounded-full aspect-square object-cover'
-            src={defaultChannelThumbnail?.url || 'default_thumbnail.png'}
-            alt={`${fullResult.searchResult.snippet?.channelTitle}thumbnail`}
+            src={defaultChannelThumbnail?.url || '/default_thumbnail.png'}
+            alt={`${fullResult.channel?.snippet?.title} thumbnail`}
             width={24}
             height={24}
           />
           <div className='text-center'>
-            {fullResult.searchResult.snippet?.channelTitle}
+            {fullResult.channel?.snippet?.title}
           </div>
         </div>
         <div className='flex items-center space-x-2'>
@@ -81,8 +79,8 @@ export default function SearchResult({ fullResult }: SearchResultProps) {
             </div>
           </div>
         </div>
-        <div className='relative pr-8 text-gray-700 text-md'>
-          {fullResult.searchResult.snippet?.description}
+        <div className='pr-8 text-gray-700 text-sm'>
+          {fullResult.video?.snippet?.description}
         </div>
       </div>
     </Link>

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import CtxtWrapper from './ctxt'
 import GapiScript from '../components/gapi'
+import Header from '@/components/header'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -32,10 +33,11 @@ export default function RootLayout({
   return (
     <html lang='en' className='h-full'>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <CtxtWrapper envVars={envVars}>
           <GapiScript />
+          <Header />
           {children}
         </CtxtWrapper>
       </body>

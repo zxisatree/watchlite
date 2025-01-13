@@ -4,11 +4,13 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useContext, useEffect } from 'react'
 import { EnvContext } from '../ctxt'
 import Link from 'next/link'
+import { OauthTokenState } from '../types'
 
 export default function OauthCallbackPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const envContext = useContext(EnvContext)
+  const { GAPI_CLIENT_ID, GAPI_CLIENT_SECRET, setOauthToken } =
+    useContext(EnvContext)
 
   // check if return is valid
   // const state = searchParams.get("state")
@@ -17,14 +19,14 @@ export default function OauthCallbackPage() {
 
   const params = {
     code: code,
-    client_id: envContext.GAPI_CLIENT_ID,
-    client_secret: envContext.GAPI_CLIENT_SECRET,
+    client_id: GAPI_CLIENT_ID,
+    client_secret: GAPI_CLIENT_SECRET,
     redirect_uri: 'http://localhost:3000/oauth2callback',
     grant_type: 'authorization_code',
     scope: '',
+    // access_type: 'offline',
+    // approval_prompt: 'force',
   }
-  console.log('params:')
-  console.log(params)
 
   useEffect(() => {
     fetch('https://oauth2.googleapis.com/token', {
@@ -36,7 +38,13 @@ export default function OauthCallbackPage() {
     })
       .then(response => response.json())
       .then(data => {
-        localStorage.setItem('oauthToken', JSON.stringify(data))
+        const expiryInSeconds = new Date().getTime() + data.expires_in * 1000
+        const oauthToken: OauthTokenState = {
+          ...data,
+          expiry_date: new Date(expiryInSeconds),
+        }
+        localStorage.setItem('oauthToken', JSON.stringify(oauthToken))
+        setOauthToken(oauthToken)
         router.push('/')
       })
       .catch(err => {
