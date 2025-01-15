@@ -53,14 +53,9 @@ export function sendChannelListRequest(
     part: 'snippet',
     id: channelIds.join(),
   })
-  // console.log('sendChannelListRequest channelIds:')
-  // console.log(channelIds)
-
   channelListRequest.execute(function (
     response: gapi.client.Response<gapi.client.youtube.ChannelListResponse>,
   ) {
-    // console.log('sendChannelListRequest response:')
-    // console.log(response)
     const channelList = response.result
     setChannelResults(channelList.items || [])
   })
@@ -75,14 +70,9 @@ export function sendChannelListRequestConcat(
     part: 'snippet',
     id: channelIds.join(),
   })
-  // console.log('sendChannelListRequestConcat channelIds:')
-  // console.log(channelIds)
-
   channelListRequest.execute(function (
     response: gapi.client.Response<gapi.client.youtube.ChannelListResponse>,
   ) {
-    // console.log('sendChannelListRequestConcat response:')
-    // console.log(response)
     const channelList = response.result
     setChannelResults(prevChannels => [
       ...prevChannels,
@@ -110,9 +100,6 @@ export function sendSubscriptionUploadsRequestPipeline(
         id: channelIds.slice(i, i + 50).join(),
       })
       .then(response => {
-        // console.log('getUploadsPlaylistRequest response:')
-        // console.log(response)
-
         // response.result.items must exist
         const nextRequests = response.result.items!.map(channelResult =>
           gapi.client.youtube.playlistItems.list({
@@ -126,8 +113,6 @@ export function sendSubscriptionUploadsRequestPipeline(
         return Promise.all(nextRequests)
       })
       .then(playlistItemsResponses => {
-        // console.log('playlistItemsResponses:')
-        // console.log(playlistItemsResponses)
         const flattened = playlistItemsResponses.flatMap(
           playlistItemsResponse => playlistItemsResponse.result.items || [],
         )
@@ -135,7 +120,7 @@ export function sendSubscriptionUploadsRequestPipeline(
         for (let i = 0; i < flattened.length; i += 50) {
           result.push(
             gapi.client.youtube.videos.list({
-              part: 'snippet',
+              part: 'snippet,statistics',
               id: flattened
                 .slice(i, i + 50)
                 .map(item => item.snippet?.resourceId?.videoId)

@@ -20,6 +20,8 @@ export type EnvContextType = {
   setSubscriptions: Dispatch<SetStateAction<gapi.client.youtube.Subscription[]>>
   oauthToken: OauthTokenState | null
   setOauthToken: Dispatch<SetStateAction<OauthTokenState | null>>
+  gapiRequestCount: number
+  setGapiRequestCount: Dispatch<SetStateAction<number>>
 }
 
 export type OauthTokenState = {

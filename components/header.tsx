@@ -20,9 +20,18 @@ export default function Header() {
     const state = 'test_oauth'
     const client_id = GAPI_CLIENT_ID
     const callback_link = 'http://localhost:3000/oauth2callback'
-    const link = `https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/youtube.readonly&response_type=code&access_type=offline&state=${state}&redirect_uri=${callback_link}&client_id=${client_id}`
-    console.log(`client_id: ${client_id}`)
-    router.push(link)
+    const link = new URL('https://accounts.google.com/o/oauth2/auth')
+    const params = new URLSearchParams({
+      state: state,
+      client_id: client_id,
+      redirect_uri: callback_link,
+      response_type: 'code',
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: 'https://www.googleapis.com/auth/youtube.readonly',
+    })
+    link.search = params.toString()
+    router.push(link.toString())
   }
 
   return (

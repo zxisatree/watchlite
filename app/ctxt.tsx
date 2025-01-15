@@ -12,6 +12,7 @@ type CtxtWrapperProps = {
   children: React.ReactNode
 }
 
+// prevent infinite loops, only send requests max 5 times per page load
 export const EnvContext = createContext<EnvContextType>({
   GAPI_API_KEY: '',
   GAPI_CLIENT_ID: '',
@@ -22,6 +23,8 @@ export const EnvContext = createContext<EnvContextType>({
   setSubscriptions: () => {},
   oauthToken: null,
   setOauthToken: () => {},
+  gapiRequestCount: 0,
+  setGapiRequestCount: () => {},
 })
 
 /** Provides environment variables and global state. Also handles OAuth token parsing from localStorage */
@@ -34,6 +37,7 @@ export default function CtxtWrapper({
     gapi.client.youtube.Subscription[]
   >([])
   const [oauthToken, setOauthToken] = useState<OauthTokenState | null>(null)
+  const [gapiRequestCount, setGapiRequestCount] = useState(0)
 
   useEffect(() => {
     const oauthError = localStorage.getItem('oauthError')
@@ -64,6 +68,8 @@ export default function CtxtWrapper({
         setSubscriptions,
         oauthToken,
         setOauthToken,
+        gapiRequestCount,
+        setGapiRequestCount,
       }}
     >
       {children}
