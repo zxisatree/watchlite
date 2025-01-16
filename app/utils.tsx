@@ -343,3 +343,41 @@ export function refreshOauthToken(
       localStorage.setItem('oauthError', err)
     })
 }
+
+const thumbnailResolutions: (keyof gapi.client.youtube.ThumbnailDetails)[] = [
+  'maxres',
+  'high',
+  'medium',
+  'default',
+  'standard',
+]
+export function chooseThumbnail(
+  thumbnailDetails: gapi.client.youtube.ThumbnailDetails,
+  preferred: keyof gapi.client.youtube.ThumbnailDetails = 'default',
+): gapi.client.youtube.Thumbnail {
+  // map each resolution to a thumbnail
+  const thumbnails = new Map(
+    thumbnailResolutions.map(resolution => [
+      resolution,
+      thumbnailDetails[resolution],
+    ]),
+  )
+  const preferredThumbnail = thumbnails.get(preferred)
+  if (preferredThumbnail) {
+    return preferredThumbnail
+  }
+
+  for (const resolution of thumbnailResolutions) {
+    const thumbnail = thumbnails.get(resolution)
+    if (thumbnail) {
+      return thumbnail
+    }
+  }
+
+  // return default thumbnail
+  return {
+    url: '/default_thumbnail.png',
+    width: 120,
+    height: 90,
+  }
+}

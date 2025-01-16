@@ -3,12 +3,14 @@
 import { useContext, useEffect, useState } from 'react'
 import { EnvContext } from './ctxt'
 import {
-  greenButton,
+  chooseThumbnail,
   sendChannelListRequestConcat,
   sendSubscriptionsListRequest,
   sendSubscriptionUploadsRequestPipeline,
 } from './utils'
 import SearchResult from '@/components/searchResult'
+import CircularImage from '@/components/circularImage'
+import { FullSearchResult } from './types'
 
 export default function Page() {
   const {
@@ -19,23 +21,25 @@ export default function Page() {
     gapiRequestCount,
     setGapiRequestCount,
   } = useContext(EnvContext)
-  const gapiRequestLimit = 5
   const [channels, setChannels] = useState<gapi.client.youtube.Channel[]>([])
+  const [subscriptionVideos, setSubscriptionVideos] = useState<
+    gapi.client.youtube.Video[]
+  >([])
+  const gapiRequestLimit = 5
   const channelMap: Record<string, gapi.client.youtube.Channel> = {}
   channels.forEach(channel => {
     if (channel.id) {
       channelMap[channel.id] = channel
     }
   })
-  const [subscriptionVideos, setSubscriptionVideos] = useState<
-    gapi.client.youtube.Video[]
-  >([])
 
   useEffect(() => {
     if (gapiIsInitialised && oauthToken) {
       if (new Date() < oauthToken.expiry_date) {
         if (gapiRequestCount > gapiRequestLimit) {
-          console.log('gapiRequestCount exceeded 5, not sending request')
+          console.log(
+            `gapiRequestCount exceeded ${gapiRequestLimit}, not sending request`,
+          )
           return
         }
         setGapiRequestCount(gapiRequestCount + 1)
@@ -50,7 +54,9 @@ export default function Page() {
     )
     if (channelIds.length > 0) {
       if (gapiRequestCount > gapiRequestLimit) {
-        console.log('gapiRequestCount exceeded 5, not sending request')
+        console.log(
+          `gapiRequestCount exceeded ${gapiRequestLimit}, not sending request`,
+        )
         return
       }
       setGapiRequestCount(gapiRequestCount + 1)
@@ -73,29 +79,6 @@ export default function Page() {
   return (
     <div className='flex flex-col justify-center items-center'>
       <div className='flex space-x-2 mt-2'>
-        {/* <button
-          type='button'
-          className={greenButton}
-          onClick={() => {
-            const accessToken = oauthToken?.access_token
-            if (accessToken) {
-              sendSubscriptionUploadsRequestPipeline(
-                subscriptions.map(
-                  subscription =>
-                    subscription.snippet?.resourceId?.channelId || '',
-                ),
-                setSubscriptionVideos,
-              )
-            } else {
-              console.error(
-                'No access token found. Please sign in via OAuth to retrieve subscriptions',
-              )
-            }
-          }}
-          disabled={!gapiIsInitialised || subscriptions.length === 0}
-        >
-          Run subscription pipeline
-        </button> */}
         <div className='bg-gray-200 p-2 rounded-lg'>
           Is OAuth token valid?{' '}
           {!oauthToken ||
@@ -105,24 +88,42 @@ export default function Page() {
             : 'Yes'}
         </div>
       </div>
-      <details>
+      <details className='space-y-1'>
         <summary className='text-center'>Subscriptions</summary>
-        {subscriptions?.map(subscription => (
-          <div key={subscription.id || 'empty'}>
-            {subscription.snippet?.title}
-            {' - '}
-            {channelMap[subscription.snippet?.resourceId?.channelId || ''] &&
-              channelMap[subscription.snippet?.resourceId?.channelId || '']
-                .snippet?.customUrl}
-          </div>
-        ))}
+        {channels.length === subscriptions.length &&
+          subscriptions?.map(subscription => {
+            // should always be defined if channels have all been fetched
+            const channelId = subscription.snippet?.resourceId?.channelId || ''
+            const channelDetails = channelMap[channelId]
+            const channelThumbnails = channelDetails.snippet?.thumbnails
+            return (
+              <div className='flex space-x-2' key={subscription.id || 'empty'}>
+                {channelThumbnails && (
+                  <CircularImage
+                    thumbnail={chooseThumbnail(channelThumbnails)}
+                    diameter={24}
+                  />
+                )}
+                <div>
+                  {subscription.snippet?.title}
+                  {' - '}
+                  {channelDetails && channelDetails.snippet?.customUrl}
+                </div>
+              </div>
+            )
+          })}
       </details>
       <div className='text-4xl my-4 pt-2 border-t-2 border-gray-500 w-full text-center'>
         Subscription videos
       </div>
-      {subscriptionVideos.map(video => (
-        <SearchResult key={video.id} fullResult={{ video }} />
-      ))}
+      {subscriptionVideos.map(video => {
+        const channelId = video.snippet?.channelId
+        const result: FullSearchResult = { video }
+        if (channelId && channelId in channelMap) {
+          result.channel = channelMap[channelId]
+        }
+        return <SearchResult key={video.id} fullResult={result} />
+      })}
     </div>
   )
 }
