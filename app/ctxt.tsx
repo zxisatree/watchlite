@@ -52,8 +52,10 @@ export default function CtxtWrapper({
         ...oauthTokenStateWithStringDate,
         expiry_date: new Date(oauthTokenStateWithStringDate.expiry_date),
       }
-      console.log('Acquired oauth token:')
-      console.log(oauthTokenState)
+      // console.log('Acquired oauth token:')
+      // console.log(oauthTokenState)
+      // console.log('Expiry date:')
+      // console.log(oauthTokenState.expiry_date)
       setOauthToken(oauthTokenState)
     }
   }, [])

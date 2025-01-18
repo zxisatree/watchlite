@@ -15,6 +15,10 @@ export function initGapi(
   apiKey: string,
   setIsInitialised: Dispatch<SetStateAction<boolean>>,
 ) {
+  if (apiKey === '') {
+    console.error('API key is empty.')
+    return
+  }
   console.log('Initialising...')
   gapi.load('client', async function () {
     await gapi.client.init({
@@ -30,7 +34,7 @@ export function initGapi(
 
 export function sendVideoStatsRequest(
   videoIds: string[],
-  setVideoResults: Dispatch<SetStateAction<gapi.client.youtube.Video[] | null>>,
+  setVideoResults: Dispatch<SetStateAction<gapi.client.youtube.Video[]>>,
 ) {
   const videoListRequest = gapi.client.youtube.videos.list({
     part: 'snippet,statistics',
@@ -138,6 +142,7 @@ export function sendSubscriptionUploadsRequestPipeline(
               result = binaryInsert(
                 result,
                 video,
+                // will cause videos to be unsorted if video.snippet is null
                 vKeyFn => vKeyFn.snippet?.publishedAt || '',
               )
             }
@@ -178,7 +183,7 @@ export function binaryInsert<T, U>(
 export function sendQueryRequest(
   queryString: string,
   setSearchResults: Dispatch<
-    SetStateAction<gapi.client.youtube.SearchResult[] | null>
+    SetStateAction<gapi.client.youtube.SearchResult[]>
   >,
 ) {
   const searchListRequest = gapi.client.youtube.search.list({
@@ -307,6 +312,7 @@ export function keySearchResultById(result: FullSearchResult): string {
     .join()
 }
 
+/** oauthToken.refresh_token must exist */
 export function refreshOauthToken(
   client_id: string,
   client_secret: string,
@@ -314,12 +320,12 @@ export function refreshOauthToken(
   setOauthToken: Dispatch<SetStateAction<OauthTokenState | null>>,
 ) {
   const params = {
-    refresh_token: oauthToken.refresh_token || '',
+    refresh_token: oauthToken.refresh_token!,
     client_id,
     client_secret,
-    // redirect_uri: 'http://localhost:3000/oauth2callback',
     grant_type: 'refresh_token',
-    // scope: '',
+    access_type: 'offline',
+    prompt: 'consent',
   }
 
   fetch('https://oauth2.googleapis.com/token', {

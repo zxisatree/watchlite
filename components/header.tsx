@@ -5,6 +5,8 @@ import { EnvContext } from '../app/ctxt'
 import { useContext } from 'react'
 import { blueButton, refreshOauthToken, yellowButton } from '@/app/utils'
 import { MdSearch } from 'react-icons/md'
+import { randomBytes } from 'crypto'
+import { csrfStateKey } from '@/app/constants'
 
 export default function Header() {
   const router = useRouter()
@@ -15,9 +17,16 @@ export default function Header() {
     oauthToken,
     setOauthToken,
   } = useContext(EnvContext)
+  // console.log('Header expiry date check:')
+  // console.log(new Date() >= oauthToken!.expiry_date)
+  const shouldRefreshBeDisabled =
+    !oauthToken ||
+    !oauthToken.refresh_token ||
+    new Date() < oauthToken.expiry_date
 
   function oauthRedirect() {
-    const state = 'test_oauth'
+    const state = randomBytes(16).toString('hex')
+    localStorage.setItem(csrfStateKey, state)
     const client_id = GAPI_CLIENT_ID
     const callback_link = 'http://localhost:3000/oauth2callback'
     const link = new URL('https://accounts.google.com/o/oauth2/auth')
@@ -55,11 +64,7 @@ export default function Header() {
             setOauthToken,
           )
         }
-        disabled={
-          !oauthToken ||
-          !oauthToken.refresh_token ||
-          new Date() >= oauthToken.expiry_date
-        }
+        disabled={shouldRefreshBeDisabled}
       >
         Refresh OAuth token
       </button>

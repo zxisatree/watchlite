@@ -18,17 +18,15 @@ export default function SearchPage() {
   const { gapiIsInitialised } = useContext(EnvContext)
 
   const [searchResults, setSearchResults] = useState<
-    gapi.client.youtube.SearchResult[] | null
-  >(null)
-  const [videoResults, setVideoResults] = useState<
-    gapi.client.youtube.Video[] | null
-  >(null)
+    gapi.client.youtube.SearchResult[]
+  >([])
+  const [videoResults, setVideoResults] = useState<gapi.client.youtube.Video[]>(
+    [],
+  )
   const [channelResults, setChannelResults] = useState<
     gapi.client.youtube.Channel[]
   >([])
-  const [fullResults, setFullResults] = useState<FullSearchResult[] | null>(
-    null,
-  )
+  const [fullResults, setFullResults] = useState<FullSearchResult[]>([])
 
   useEffect(() => {
     if (gapiIsInitialised && query) {

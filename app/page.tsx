@@ -3,14 +3,13 @@
 import { useContext, useEffect, useState } from 'react'
 import { EnvContext } from './ctxt'
 import {
-  chooseThumbnail,
   sendChannelListRequestConcat,
   sendSubscriptionsListRequest,
   sendSubscriptionUploadsRequestPipeline,
 } from './utils'
 import SearchResult from '@/components/searchResult'
-import CircularImage from '@/components/circularImage'
 import { FullSearchResult } from './types'
+import SubscriptionSummaryList from '@/components/subscriptionSummaryList'
 
 export default function Page() {
   const {
@@ -26,12 +25,45 @@ export default function Page() {
     gapi.client.youtube.Video[]
   >([])
   const gapiRequestLimit = 5
+  const maxSubscriptionVideoCount = 15
+  const isOauthTokenValid = !(
+    !oauthToken ||
+    !oauthToken.expiry_date ||
+    new Date() >= oauthToken.expiry_date
+  )
+  console.log('isOauthTokenValid: ', isOauthTokenValid)
+  console.log('date:')
+  console.log(new Date())
+  console.log('expiry_date:')
+  console.log(oauthToken?.expiry_date)
+  console.log('date > expiry_date:')
+  console.log(oauthToken && new Date() >= oauthToken.expiry_date)
+
   const channelMap: Record<string, gapi.client.youtube.Channel> = {}
   channels.forEach(channel => {
     if (channel.id) {
       channelMap[channel.id] = channel
     }
   })
+
+  // console.log(`subscriptionVideos.slice(0, ${maxSubscriptionVideoCount}):`)
+  // console.log(
+  //   subscriptionVideos
+  //     .slice(0, maxSubscriptionVideoCount)
+  //     .map(video => video.snippet),
+  // )
+  console.log('subscriptions:')
+  console.log(subscriptions.map(s => s.snippet))
+  // map subscription ID to count
+  // const subscriptionIdCount: Record<string, number> = {}
+  // subscriptions.forEach(subscription => {
+  //   const channelId = subscription.snippet?.resourceId?.channelId
+  //   if (channelId) {
+  //     subscriptionIdCount[channelId] = (subscriptionIdCount[channelId] || 0) + 1
+  //   }
+  // })
+  // console.log('subscriptionIdCount:')
+  // console.log(subscriptionIdCount)
 
   useEffect(() => {
     if (gapiIsInitialised && oauthToken) {
@@ -78,45 +110,24 @@ export default function Page() {
 
   return (
     <div className='flex flex-col justify-center items-center'>
-      <div className='flex space-x-2 mt-2'>
-        <div className='bg-gray-200 p-2 rounded-lg'>
-          Is OAuth token valid?{' '}
-          {!oauthToken ||
-          !oauthToken.expiry_date ||
-          new Date() >= oauthToken.expiry_date
-            ? 'No'
-            : 'Yes'}
+      {isOauthTokenValid ? (
+        <div className='bg-green-200 p-2 rounded-lg mt-2'>
+          OAuth token is valid!
         </div>
-      </div>
-      <details className='space-y-1'>
-        <summary className='text-center'>Subscriptions</summary>
-        {channels.length === subscriptions.length &&
-          subscriptions?.map(subscription => {
-            // should always be defined if channels have all been fetched
-            const channelId = subscription.snippet?.resourceId?.channelId || ''
-            const channelDetails = channelMap[channelId]
-            const channelThumbnails = channelDetails.snippet?.thumbnails
-            return (
-              <div className='flex space-x-2' key={subscription.id || 'empty'}>
-                {channelThumbnails && (
-                  <CircularImage
-                    thumbnail={chooseThumbnail(channelThumbnails)}
-                    diameter={24}
-                  />
-                )}
-                <div>
-                  {subscription.snippet?.title}
-                  {' - '}
-                  {channelDetails && channelDetails.snippet?.customUrl}
-                </div>
-              </div>
-            )
-          })}
-      </details>
+      ) : (
+        <div className='bg-red-200 p-2 rounded-lg mt-2'>
+          Invalid OAuth token.
+        </div>
+      )}
+      <SubscriptionSummaryList
+        subscriptions={subscriptions}
+        channels={channels}
+        channelMap={channelMap}
+      />
       <div className='text-4xl my-4 pt-2 border-t-2 border-gray-500 w-full text-center'>
-        Subscription videos
+        Subscription videos (first {maxSubscriptionVideoCount})
       </div>
-      {subscriptionVideos.map(video => {
+      {subscriptionVideos.slice(0, maxSubscriptionVideoCount).map(video => {
         const channelId = video.snippet?.channelId
         const result: FullSearchResult = { video }
         if (channelId && channelId in channelMap) {
