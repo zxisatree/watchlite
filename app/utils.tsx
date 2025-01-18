@@ -1,16 +1,6 @@
 import { Dispatch, SetStateAction } from 'react'
 import { FullSearchResult, OauthTokenState } from './types'
 
-// Tailwind requires constant strings
-export const redButton =
-  'focus:outline-none text-white bg-red-700 enabled:hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-red-600 enabled:dark:hover:bg-red-700 dark:focus:ring-red-900 disabled:bg-red-300'
-export const blueButton =
-  'focus:outline-none text-white bg-blue-700 enabled:hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 enabled:dark:hover:bg-blue-700 dark:focus:ring-blue-900 disabled:bg-blue-300'
-export const yellowButton =
-  'focus:outline-none text-white bg-yellow-700 enabled:hover:bg-yellow-800 focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-yellow-600 enabled:dark:hover:bg-yellow-700 dark:focus:ring-yellow-900 disabled:bg-yellow-300'
-export const greenButton =
-  'focus:outline-none text-white bg-green-700 enabled:hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-green-600 enabled:dark:hover:bg-green-700 dark:focus:ring-green-900 disabled:bg-green-300'
-
 export function initGapi(
   apiKey: string,
   setIsInitialised: Dispatch<SetStateAction<boolean>>,
@@ -153,33 +143,6 @@ export function sendSubscriptionUploadsRequestPipeline(
   }
 }
 
-/** Returns a new array */
-export function binaryInsert<T, U>(
-  arr: Array<T>,
-  val: T,
-  keyFn: (item: T) => U,
-) {
-  if (arr.length === 0) {
-    return [val]
-  }
-  let lo = 0
-  let hi = arr.length - 1
-  const target = keyFn(val)
-  while (lo < hi) {
-    const mid = lo + Math.floor((hi - lo) / 2)
-    if (keyFn(arr[mid]) < target) {
-      lo = mid + 1
-    } else {
-      hi = mid
-    }
-  }
-  if (keyFn(arr[lo]) < target) {
-    return arr.slice(0, lo + 1).concat(val, arr.slice(lo + 1))
-  } else {
-    return arr.slice(0, lo).concat(val, arr.slice(lo))
-  }
-}
-
 export function sendQueryRequest(
   queryString: string,
   setSearchResults: Dispatch<
@@ -206,6 +169,9 @@ export function sendSubscriptionsListRequest(
     SetStateAction<gapi.client.youtube.Subscription[]>
   >,
 ) {
+  // reset
+  setSubscriptions([])
+
   const baseParams = {
     access_token: accessToken,
     part: 'contentDetails,snippet',
@@ -324,8 +290,6 @@ export function refreshOauthToken(
     client_id,
     client_secret,
     grant_type: 'refresh_token',
-    access_type: 'offline',
-    prompt: 'consent',
   }
 
   fetch('https://oauth2.googleapis.com/token', {
@@ -338,12 +302,13 @@ export function refreshOauthToken(
     .then(response => response.json())
     .then(data => {
       const expiryInSeconds = new Date().getTime() + data.expires_in * 1000
-      const oauthToken: OauthTokenState = {
+      const refreshedOauthToken: OauthTokenState = {
         ...data,
+        refresh_token: oauthToken.refresh_token!,
         expiry_date: new Date(expiryInSeconds),
       }
-      localStorage.setItem('oauthToken', JSON.stringify(oauthToken))
-      setOauthToken(oauthToken)
+      localStorage.setItem('oauthToken', JSON.stringify(refreshedOauthToken))
+      setOauthToken(refreshedOauthToken)
     })
     .catch(err => {
       localStorage.setItem('oauthError', err)
@@ -386,4 +351,110 @@ export function chooseThumbnail(
     width: 120,
     height: 90,
   }
+}
+
+export function sendPlaylistListRequest(
+  accessToken: string,
+  setPlaylists: Dispatch<SetStateAction<gapi.client.youtube.Playlist[]>>,
+) {
+  const baseParams = {
+    access_token: accessToken,
+    part: 'snippet',
+    mine: true,
+  }
+  const playlistsRequest = gapi.client.youtube.playlists.list(baseParams)
+
+  let allPlaylists: gapi.client.youtube.Playlist[] = []
+
+  function handlePlaylistResponse(
+    response: gapi.client.Response<gapi.client.youtube.PlaylistListResponse>,
+  ) {
+    const responseResult = response.result
+    const responseItems = responseResult.items
+
+    if (!responseItems) {
+      return
+    }
+
+    allPlaylists = allPlaylists.concat(responseItems)
+    const nextPageToken = responseResult.nextPageToken
+
+    if (nextPageToken) {
+      const nextPageParams = {
+        ...baseParams,
+        pageToken: nextPageToken,
+      }
+      const nextPageRequest = gapi.client.youtube.playlists.list(nextPageParams)
+      nextPageRequest.execute(handlePlaylistResponse)
+    } else {
+      setPlaylists(allPlaylists)
+    }
+  }
+
+  playlistsRequest.execute(handlePlaylistResponse)
+}
+
+/*************************** GENERIC HELPERS ******************************/
+
+export function mod(a: number, b: number) {
+  return ((a % b) + b) % b
+}
+
+export function djb2(str: string) {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const charCode = str.charCodeAt(i)
+    hash = (hash << 5) - hash + charCode // hash * 31 + charCode
+    hash |= 0 // Convert to 32-bit integer
+  }
+  return hash
+}
+
+export function murmurHash(str: string) {
+  let hash = 0
+  const seed = 0x5bd1e995 // Prime multiplier
+
+  for (let i = 0; i < str.length; i++) {
+    const charCode = str.charCodeAt(i)
+    hash = Math.imul(hash ^ charCode, seed) // Mix with the seed
+    hash ^= hash >>> 13 // Right shift and XOR
+  }
+
+  // Finalize the hash (further mixing to ensure better randomness)
+  hash ^= hash >>> 15
+  hash = Math.imul(hash, seed)
+  hash ^= hash >>> 13
+
+  return hash >>> 0 // Convert to an unsigned 32-bit integer
+}
+
+/** Returns a new array */
+export function binaryInsert<T, U>(
+  arr: Array<T>,
+  val: T,
+  keyFn: (item: T) => U,
+) {
+  if (arr.length === 0) {
+    return [val]
+  }
+  let lo = 0
+  let hi = arr.length - 1
+  const target = keyFn(val)
+  while (lo < hi) {
+    const mid = lo + Math.floor((hi - lo) / 2)
+    if (keyFn(arr[mid]) < target) {
+      lo = mid + 1
+    } else {
+      hi = mid
+    }
+  }
+  if (keyFn(arr[lo]) < target) {
+    return arr.slice(0, lo + 1).concat(val, arr.slice(lo + 1))
+  } else {
+    return arr.slice(0, lo).concat(val, arr.slice(lo))
+  }
+}
+
+export function isNotUndefined<T>(s: T | undefined): s is T {
+  return !!s
 }

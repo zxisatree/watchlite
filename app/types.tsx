@@ -10,6 +10,11 @@ export type SubscriptionApiResult = {
   result: gapi.client.youtube.Subscription
 }
 
+export type VideoListInfo = {
+  videos: gapi.client.youtube.Video[]
+  channels: Record<string, gapi.client.youtube.Channel>
+}
+
 export type EnvContextType = {
   GAPI_API_KEY: string
   GAPI_CLIENT_ID: string

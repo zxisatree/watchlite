@@ -19,7 +19,8 @@ export default function OauthCallbackPage() {
     redirect_uri: 'http://localhost:3000/oauth2callback',
     grant_type: 'authorization_code',
     scope: '',
-    access_type: 'offline',
+    // access_type: 'offline',
+    // prompt: 'consent',
     // approval_prompt: 'force',
   }
 

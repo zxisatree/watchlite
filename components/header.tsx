@@ -3,7 +3,8 @@ import { useRouter } from 'next/navigation'
 import Form from 'next/form'
 import { EnvContext } from '../app/ctxt'
 import { useContext } from 'react'
-import { blueButton, refreshOauthToken, yellowButton } from '@/app/utils'
+import { refreshOauthToken } from '@/app/utils'
+import { blueButton, yellowButton } from '@/app/tailwindStyles'
 import { MdSearch } from 'react-icons/md'
 import { randomBytes } from 'crypto'
 import { csrfStateKey } from '@/app/constants'
@@ -64,7 +65,7 @@ export default function Header() {
             setOauthToken,
           )
         }
-        disabled={shouldRefreshBeDisabled}
+        disabled={shouldRefreshBeDisabled && false}
       >
         Refresh OAuth token
       </button>
