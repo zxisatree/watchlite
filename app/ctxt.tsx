@@ -40,25 +40,24 @@ export default function CtxtWrapper({
   const [gapiRequestCount, setGapiRequestCount] = useState(0)
 
   useEffect(() => {
-    const oauthError = localStorage.getItem('oauthError')
-    const oauthTokenRaw = localStorage.getItem('oauthToken')
-    if (oauthError !== null) {
-      console.error(oauthError)
-      localStorage.removeItem('oauthError')
-    }
-    if (oauthTokenRaw !== null) {
-      const oauthTokenStateWithStringDate = JSON.parse(oauthTokenRaw)
-      const oauthTokenState: OauthTokenState = {
-        ...oauthTokenStateWithStringDate,
-        expiry_date: new Date(oauthTokenStateWithStringDate.expiry_date),
+    if (gapiIsInitialised) {
+      const oauthError = localStorage.getItem('oauthError')
+      const oauthTokenRaw = localStorage.getItem('oauthToken')
+      if (oauthError !== null) {
+        console.error(oauthError)
+        localStorage.removeItem('oauthError')
       }
-      // console.log('Acquired oauth token:')
-      // console.log(oauthTokenState)
-      // console.log('Expiry date:')
-      // console.log(oauthTokenState.expiry_date)
-      setOauthToken(oauthTokenState)
+      if (oauthTokenRaw !== null) {
+        const oauthTokenStateWithStringDate = JSON.parse(oauthTokenRaw)
+        const oauthTokenState: OauthTokenState = {
+          ...oauthTokenStateWithStringDate,
+          expiry_date: new Date(oauthTokenStateWithStringDate.expiry_date),
+        }
+        gapi.client.setToken({ access_token: oauthTokenState.access_token })
+        setOauthToken(oauthTokenState)
+      }
     }
-  }, [])
+  }, [gapiIsInitialised])
 
   return (
     <EnvContext.Provider

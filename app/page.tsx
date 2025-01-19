@@ -20,7 +20,6 @@ import VideoCard from '@/components/videoCard'
 type BaseParams = {
   part: string
   playlistId: string | undefined
-  access_token: string | undefined
 }
 
 function handlePlaylistItemsResponse(
@@ -77,7 +76,6 @@ function handleSelectPlaylist(
   const baseParams = {
     part: 'snippet',
     playlistId: playlist.id,
-    access_token: oauthToken?.access_token,
   }
   gapi.client.youtube.playlistItems
     .list(baseParams)
@@ -187,8 +185,8 @@ export default function Page() {
           return
         }
         setGapiRequestCount(gapiRequestCount + 1)
-        sendSubscriptionsListRequest(oauthToken.access_token, setSubscriptions)
-        sendPlaylistListRequest(oauthToken.access_token, setPlaylists)
+        sendSubscriptionsListRequest(setSubscriptions)
+        sendPlaylistListRequest(setPlaylists)
       }
     }
   }, [gapiIsInitialised, oauthToken])

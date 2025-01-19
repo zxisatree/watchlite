@@ -3,21 +3,22 @@ import { FullSearchResult, OauthTokenState } from './types'
 
 export function initGapi(
   apiKey: string,
+  clientId: string,
   setIsInitialised: Dispatch<SetStateAction<boolean>>,
 ) {
   if (apiKey === '') {
     console.error('API key is empty.')
     return
   }
-  console.log('Initialising...')
   gapi.load('client', async function () {
     await gapi.client.init({
       apiKey: apiKey,
+      // clientId: clientId,
+      // scope: 'https://www.googleapis.com/auth/youtube',
       discoveryDocs: [
         'https://youtube.googleapis.com/$discovery/rest?version=v3',
       ],
     })
-    console.log('Initialised.')
     setIsInitialised(true)
   })
 }
@@ -164,7 +165,6 @@ export function sendQueryRequest(
 }
 
 export function sendSubscriptionsListRequest(
-  accessToken: string,
   setSubscriptions: Dispatch<
     SetStateAction<gapi.client.youtube.Subscription[]>
   >,
@@ -173,7 +173,6 @@ export function sendSubscriptionsListRequest(
   setSubscriptions([])
 
   const baseParams = {
-    access_token: accessToken,
     part: 'contentDetails,snippet',
     mine: true,
   }
@@ -354,11 +353,9 @@ export function chooseThumbnail(
 }
 
 export function sendPlaylistListRequest(
-  accessToken: string,
   setPlaylists: Dispatch<SetStateAction<gapi.client.youtube.Playlist[]>>,
 ) {
   const baseParams = {
-    access_token: accessToken,
     part: 'snippet',
     mine: true,
   }
