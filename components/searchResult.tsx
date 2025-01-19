@@ -15,7 +15,7 @@ export default function SearchResult({ fullResult }: SearchResultProps) {
   const defaultUrl = defaultVideoThumbnail?.url
   return (
     <Link
-      href={`/play?v=${fullResult.video?.id}`}
+      href={`/watch?v=${fullResult.video?.id}`}
       className='w-[70%] p-2 border-black border flex flex-row'
     >
       <div className='w-[30%] flex-shrink-0 flex-grow-0'>

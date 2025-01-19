@@ -274,7 +274,8 @@ export default function Page() {
         (first {maxVideosDisplayed})
       </div>
       {chosenPlaylist !== null
-        ? playlistVideoListInfo.videos
+        ? // playlistVideoListInfo is not modified until query completes
+          playlistVideoListInfo.videos
             .slice(0, maxVideosDisplayed)
             .map(video => (
               <VideoCard

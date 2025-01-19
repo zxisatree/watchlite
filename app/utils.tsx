@@ -394,6 +394,10 @@ export function sendPlaylistListRequest(
   playlistsRequest.execute(handlePlaylistResponse)
 }
 
+export function scaleWidthAndHeight(factor: number) {
+  return { height: 390 * factor, width: 640 * factor }
+}
+
 /*************************** GENERIC HELPERS ******************************/
 
 export function mod(a: number, b: number) {

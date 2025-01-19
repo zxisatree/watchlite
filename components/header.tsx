@@ -65,7 +65,7 @@ export default function Header() {
             setOauthToken,
           )
         }
-        disabled={shouldRefreshBeDisabled && false}
+        disabled={shouldRefreshBeDisabled}
       >
         Refresh OAuth token
       </button>
