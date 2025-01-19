@@ -395,7 +395,7 @@ export function sendPlaylistListRequest(
   setPlaylists: Dispatch<SetStateAction<gapi.client.youtube.Playlist[]>>,
 ) {
   const baseParams = {
-    part: 'snippet',
+    part: 'snippet,contentDetails',
     mine: true,
   }
   const playlistsRequest = gapi.client.youtube.playlists.list(baseParams)

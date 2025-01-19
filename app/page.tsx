@@ -83,10 +83,20 @@ export default function Page() {
     {},
   )
 
-  // console.log('playlistVideoListInfo:')
-  // console.log(playlistVideoListInfo)
-  // console.log('gapiRequestCount:')
-  // console.log(gapiRequestCount)
+  const playlistItemCount =
+    playlistMap[chosenPlaylistId || '']?.contentDetails?.itemCount
+  const videoCount = !chosenPlaylistId
+    ? Math.min(maxVideosDisplayed, subscriptionVideos.length)
+    : playlistItemCount
+    ? Math.min(maxVideosDisplayed, playlistItemCount)
+    : maxVideosDisplayed
+  const videoCountString = `${
+    videoCount < maxVideosDisplayed ? 'all ' : 'first '
+  }${videoCount}${
+    chosenPlaylistId && videoCount >= maxVideosDisplayed
+      ? ` out of ${playlistItemCount}`
+      : ''
+  }`
 
   // fetch subscriptions and playlists
   useEffect(() => {
@@ -218,7 +228,7 @@ export default function Page() {
         {chosenPlaylistId
           ? `${playlistMap[chosenPlaylistId]?.snippet?.title} videos`
           : `Subscription videos`}{' '}
-        (first {maxVideosDisplayed})
+        ({videoCountString})
       </div>
       {chosenPlaylistId
         ? // playlistVideoListInfo is not modified until query completes

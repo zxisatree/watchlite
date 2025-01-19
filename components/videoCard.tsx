@@ -17,23 +17,26 @@ export default function VideoCard({
   const defaultVideoThumbnail = thumbnailDetails?.high
   const defaultChannelThumbnail = thumbnailDetails?.default
   const defaultUrl = defaultVideoThumbnail?.url
+  // height is usually 360, width is usually 480
   return (
     <Link
       href={`/watch?v=${video.id}`}
-      className='w-[70%] p-2 border-black border flex flex-row'
+      className='w-[70%] min-w-[750px] p-1 mb-2 max-h-[360px] flex flex-row bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-200'
     >
-      <div className='w-[30%] flex-shrink-0 flex-grow-0'>
-        <div className='w-[95%]'>
-          <Image
-            src={defaultUrl || '/default_thumbnail.png'}
-            alt={`${video.snippet?.title} thumbnail`}
-            width={defaultVideoThumbnail ? defaultVideoThumbnail.width : 480}
-            height={defaultVideoThumbnail ? defaultVideoThumbnail.height : 360}
-          />
-        </div>
+      <div className='w-[420px] h-[300px] flex-shrink-0 flex-grow-0 relative'>
+        <Image
+          className='p-2 rounded-2xl'
+          src={defaultUrl || '/default_thumbnail.png'}
+          alt={`${video.snippet?.title} thumbnail`}
+          layout='fill'
+          objectFit='cover'
+          // width={defaultVideoThumbnail ? defaultVideoThumbnail.width : 480}
+          // height={defaultVideoThumbnail ? defaultVideoThumbnail.height : 360}
+        />
       </div>
-      <div className='w-[70%]'>
-        <h5 className='flex-shrink-0 flex-grow-0 mb-2 text-xl font-bold'>
+      {/* Unflex */}
+      <div className='py-2 space-y-2'>
+        <h5 className='mb-2 text-xl font-bold text-wrap'>
           {video.snippet?.title || 'Title not found'}
         </h5>
         <div
@@ -47,17 +50,19 @@ export default function VideoCard({
             width={24}
             height={24}
           />
-          <div className='text-center'>{channel.snippet?.title}</div>
+          <div className='text-center text-gray-700 font-semibold'>
+            {channel.snippet?.title}
+          </div>
         </div>
         <div className='flex items-center space-x-2'>
-          <div className='flex space-x-1'>
+          <div className='flex text-gray-700 space-x-1'>
             <MdOutlineVisibility size={20} className='self-end' />
             <div className='text-center'>
               {stringifyCount(video.statistics?.viewCount || '0', 2)}
             </div>
           </div>
           <div className='text-gray-400'>&bull;</div>
-          <div className='flex space-x-1'>
+          <div className='flex text-gray-700 space-x-1'>
             <MdCalendarToday size={20} className='self-end' />
             <div className='text-center'>
               {video.snippet?.publishedAt
@@ -66,7 +71,7 @@ export default function VideoCard({
             </div>
           </div>
           <div className='text-gray-400'>&bull;</div>
-          <div className='flex space-x-1'>
+          <div className='flex text-gray-700 space-x-1'>
             <MdThumbUp size={20} className='self-end' />
             <div className='text-center'>
               {stringifyCount(video.statistics?.likeCount || '0', 0)}
@@ -74,7 +79,11 @@ export default function VideoCard({
           </div>
         </div>
         <div className='pr-8 text-gray-700 text-sm'>
-          {video.snippet?.description}
+          {video.snippet?.description?.substring(0, 200)}
+          {video.snippet?.description?.length &&
+          video.snippet?.description?.length > 200
+            ? '...'
+            : ''}
         </div>
       </div>
     </Link>

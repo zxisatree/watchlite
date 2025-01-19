@@ -45,7 +45,7 @@ export default function Header() {
   }
 
   return (
-    <div className='sticky inset-0 flex flex-row items-center space-x-2 p-8 bg-gray-500 bg-opacity-50 backdrop-blur-sm'>
+    <div className='sticky inset-0 flex flex-row items-center space-x-2 p-8 z-50 bg-gray-500 bg-opacity-50 backdrop-blur-sm'>
       <button
         type='button'
         className={yellowButton}
