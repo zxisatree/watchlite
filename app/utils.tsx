@@ -1,5 +1,12 @@
-import { Dispatch, SetStateAction } from 'react'
-import { FullSearchResult, OauthTokenState } from './types'
+import {
+  DependencyList,
+  Dispatch,
+  EffectCallback,
+  SetStateAction,
+  useEffect,
+  useRef,
+} from 'react'
+import { FullSearchResult, OauthTokenState, VideoListInfo } from './types'
 
 export function initGapi(
   apiKey: string,
@@ -21,6 +28,43 @@ export function initGapi(
     })
     setIsInitialised(true)
   })
+}
+
+/** oauthToken.refresh_token must exist */
+export function refreshOauthToken(
+  client_id: string,
+  client_secret: string,
+  oauthToken: OauthTokenState,
+  setOauthToken: Dispatch<SetStateAction<OauthTokenState | null>>,
+) {
+  const params = {
+    refresh_token: oauthToken.refresh_token!,
+    client_id,
+    client_secret,
+    grant_type: 'refresh_token',
+  }
+
+  fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams(params),
+  })
+    .then(response => response.json())
+    .then(data => {
+      const expiryInSeconds = new Date().getTime() + data.expires_in * 1000
+      const refreshedOauthToken: OauthTokenState = {
+        ...data,
+        refresh_token: oauthToken.refresh_token!,
+        expiry_date: new Date(expiryInSeconds),
+      }
+      localStorage.setItem('oauthToken', JSON.stringify(refreshedOauthToken))
+      setOauthToken(refreshedOauthToken)
+    })
+    .catch(err => {
+      localStorage.setItem('oauthError', err)
+    })
 }
 
 export function sendVideoStatsRequest(
@@ -211,60 +255,92 @@ export function sendSubscriptionsListRequest(
   subscriptionsRequest.execute(handleSubscriptionResponse)
 }
 
-export function stringifyCount(
-  countResponse: string,
-  decimalPlaces: number = 2,
+export function fetchPlaylistItems(
+  playlist: gapi.client.youtube.Playlist,
+  setPlaylistVideoListInfo: React.Dispatch<React.SetStateAction<VideoListInfo>>,
+  setIsPlaylistLoading: React.Dispatch<React.SetStateAction<boolean>>,
 ) {
-  const parsedCount = Number.parseInt(countResponse)
-
-  if (parsedCount < 1000) {
-    return parsedCount.toString()
+  const baseParams = {
+    part: 'snippet',
+    playlistId: playlist.id,
   }
+  gapi.client.youtube.playlistItems
+    .list(baseParams)
+    .then(response => handlePlaylistItemsResponse(response, baseParams, []))
+    .then(playlistItems => {
+      // Collect all videos and channels
+      const videos = playlistItems
+        .map(playlistItem => playlistItem.snippet?.resourceId?.videoId)
+        .filter(isNotUndefined)
+      const channels = Array.from(
+        new Set(
+          playlistItems
+            .map(playlistItem => playlistItem.snippet?.videoOwnerChannelId)
+            .filter(isNotUndefined),
+        ),
+      )
 
-  const cutoffs = [1000, 1000 ** 2, 1000 ** 3, 1000 ** 4]
-  const prefixIndex = cutoffs.findLastIndex(cutoff => parsedCount >= cutoff)
-  const prefixes = ['K', 'M', 'B', 'T']
-  return (
-    (parsedCount / cutoffs[prefixIndex]).toFixed(decimalPlaces) +
-    prefixes[prefixIndex]
-  )
+      const videoPromises: gapi.client.Request<gapi.client.youtube.VideoListResponse>[] =
+        []
+      for (let i = 0; i < videos.length; i += 50) {
+        videoPromises.push(
+          gapi.client.youtube.videos.list({
+            part: 'snippet,statistics',
+            id: videos.slice(i, i + 50).join(','),
+          }),
+        )
+      }
+      const channelPromises: gapi.client.Request<gapi.client.youtube.ChannelListResponse>[] =
+        []
+      for (let i = 0; i < channels.length; i += 50) {
+        channelPromises.push(
+          gapi.client.youtube.channels.list({
+            part: 'snippet',
+            id: channels.slice(i, i + 50).join(','),
+          }),
+        )
+      }
+
+      return Promise.all([...videoPromises, ...channelPromises])
+    })
+    .then(responses => {
+      const videoResponses = responses.filter(
+        (
+          response,
+        ): response is gapi.client.Response<gapi.client.youtube.VideoListResponse> =>
+          response.result?.kind === 'youtube#videoListResponse',
+      )
+      const channelResponses = responses.filter(
+        (
+          response,
+        ): response is gapi.client.Response<gapi.client.youtube.ChannelListResponse> =>
+          response.result?.kind === 'youtube#channelListResponse',
+      )
+
+      const videoItems = videoResponses
+        .flatMap(videoResponse => videoResponse.result?.items)
+        .filter(isNotUndefined)
+      const channelItems = channelResponses
+        .flatMap(channelResponse => channelResponse.result?.items)
+        .filter(isNotUndefined)
+      if (!videoItems || !channelItems) {
+        return
+      }
+      setPlaylistVideoListInfo({
+        videos: videoItems,
+        channels: channelItems.reduce(
+          (acc: Record<string, gapi.client.youtube.Channel>, channel) => {
+            if (channel.id) {
+              acc[channel.id] = channel
+            }
+            return acc
+          },
+          {},
+        ),
+      })
+      setIsPlaylistLoading(false)
+    })
 }
-
-/**
- * Taken from https://gist.github.com/LewisJEllis/9ad1f35d102de8eee78f6bd081d486ad
- */
-function stringifyDateRelativelyFactory(lang = 'en') {
-  const cutoffs = [
-    60,
-    3600,
-    86400,
-    86400 * 7,
-    86400 * 30,
-    86400 * 365,
-    Infinity,
-  ]
-  const units: Intl.RelativeTimeFormatUnit[] = [
-    'second',
-    'minute',
-    'hour',
-    'day',
-    'week',
-    'month',
-    'year',
-  ]
-  const rtf = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' })
-  return function stringifyDateRelatively(dateString: string): string {
-    const date = new Date(dateString)
-    const deltaSeconds = Math.round((date.getTime() - Date.now()) / 1000)
-    const unitIndex = cutoffs.findIndex(
-      cutoff => cutoff > Math.abs(deltaSeconds),
-    )
-    const divisor = unitIndex ? cutoffs[unitIndex - 1] : 1
-    return rtf.format(Math.round(deltaSeconds / divisor), units[unitIndex])
-  }
-}
-
-export const stringifyDateRelatively = stringifyDateRelativelyFactory()
 
 // Will return empty string if result.is is null
 export function keySearchResultById(result: FullSearchResult): string {
@@ -275,43 +351,6 @@ export function keySearchResultById(result: FullSearchResult): string {
   ]
     .filter(Boolean)
     .join()
-}
-
-/** oauthToken.refresh_token must exist */
-export function refreshOauthToken(
-  client_id: string,
-  client_secret: string,
-  oauthToken: OauthTokenState,
-  setOauthToken: Dispatch<SetStateAction<OauthTokenState | null>>,
-) {
-  const params = {
-    refresh_token: oauthToken.refresh_token!,
-    client_id,
-    client_secret,
-    grant_type: 'refresh_token',
-  }
-
-  fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams(params),
-  })
-    .then(response => response.json())
-    .then(data => {
-      const expiryInSeconds = new Date().getTime() + data.expires_in * 1000
-      const refreshedOauthToken: OauthTokenState = {
-        ...data,
-        refresh_token: oauthToken.refresh_token!,
-        expiry_date: new Date(expiryInSeconds),
-      }
-      localStorage.setItem('oauthToken', JSON.stringify(refreshedOauthToken))
-      setOauthToken(refreshedOauthToken)
-    })
-    .catch(err => {
-      localStorage.setItem('oauthError', err)
-    })
 }
 
 const thumbnailResolutions: (keyof gapi.client.youtube.ThumbnailDetails)[] = [
@@ -391,9 +430,103 @@ export function sendPlaylistListRequest(
   playlistsRequest.execute(handlePlaylistResponse)
 }
 
+export function handlePlaylistItemsResponse(
+  response: gapi.client.Response<gapi.client.youtube.PlaylistItemListResponse>,
+  baseParams: {
+    part: string
+    playlistId: string | undefined
+  },
+  acc: gapi.client.youtube.PlaylistItem[],
+):
+  | Promise<gapi.client.youtube.PlaylistItem[]>
+  | gapi.client.youtube.PlaylistItem[] {
+  const responseResult = response.result
+  const responseItems = responseResult.items
+  if (!responseItems) {
+    return acc
+  }
+
+  // send requests for all playlist items
+  const nextPageToken = responseResult.nextPageToken
+  if (nextPageToken) {
+    const nextPageParams = {
+      ...baseParams,
+      pageToken: nextPageToken,
+    }
+    return gapi.client.youtube.playlistItems
+      .list(nextPageParams)
+      .then(response =>
+        handlePlaylistItemsResponse(
+          response,
+          baseParams,
+          acc.concat(responseItems),
+        ),
+      )
+  } else {
+    return acc.concat(responseItems)
+  }
+}
+
+/*************************** YOUTUBE RELATED HELPERS ******************************/
+
 export function scaleWidthAndHeight(factor: number) {
   return { height: 390 * factor, width: 640 * factor }
 }
+
+export function stringifyCount(
+  countResponse: string,
+  decimalPlaces: number = 2,
+) {
+  const parsedCount = Number.parseInt(countResponse)
+
+  if (parsedCount < 1000) {
+    return parsedCount.toString()
+  }
+
+  const cutoffs = [1000, 1000 ** 2, 1000 ** 3, 1000 ** 4]
+  const prefixIndex = cutoffs.findLastIndex(cutoff => parsedCount >= cutoff)
+  const prefixes = ['K', 'M', 'B', 'T']
+  return (
+    (parsedCount / cutoffs[prefixIndex]).toFixed(decimalPlaces) +
+    prefixes[prefixIndex]
+  )
+}
+
+/**
+ * Taken from https://gist.github.com/LewisJEllis/9ad1f35d102de8eee78f6bd081d486ad
+ */
+function stringifyDateRelativelyFactory(lang = 'en') {
+  const cutoffs = [
+    60,
+    3600,
+    86400,
+    86400 * 7,
+    86400 * 30,
+    86400 * 365,
+    Infinity,
+  ]
+  const units: Intl.RelativeTimeFormatUnit[] = [
+    'second',
+    'minute',
+    'hour',
+    'day',
+    'week',
+    'month',
+    'year',
+  ]
+  const rtf = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' })
+  return function stringifyDateRelatively(dateString: string): string {
+    const date = new Date(dateString)
+    const deltaSeconds = Math.round((date.getTime() - Date.now()) / 1000)
+    const unitIndex = cutoffs.findIndex(
+      cutoff => cutoff > Math.abs(deltaSeconds),
+    )
+    const divisor = unitIndex ? cutoffs[unitIndex - 1] : 1
+    return rtf.format(Math.round(deltaSeconds / divisor), units[unitIndex])
+  }
+}
+
+export const stringifyDateRelatively = stringifyDateRelativelyFactory()
 
 /*************************** GENERIC HELPERS ******************************/
 
@@ -458,4 +591,49 @@ export function binaryInsert<T, U>(
 
 export function isNotUndefined<T>(s: T | undefined): s is T {
   return !!s
+}
+
+/*************************** REACT HELPERS ******************************/
+export function usePrevious<T>(value: T, initialValue: T) {
+  const ref = useRef(initialValue)
+  useEffect(() => {
+    ref.current = value
+  })
+  return ref.current
+}
+
+export function useEffectDebugger(
+  effectHook: EffectCallback,
+  dependencies: DependencyList,
+  dependencyNames: string[] = [],
+) {
+  const previousDeps = usePrevious(dependencies, [])
+
+  const changedDeps = dependencies.reduce(
+    (
+      acc: Record<string | number, { before: unknown; after: unknown }>,
+      dependency,
+      index,
+    ) => {
+      if (dependency !== previousDeps[index]) {
+        const keyName = dependencyNames[index] || index
+        return {
+          ...acc,
+          [keyName]: {
+            before: previousDeps[index],
+            after: dependency,
+          },
+        }
+      }
+
+      return acc
+    },
+    {},
+  )
+
+  if (Object.keys(changedDeps).length) {
+    console.log('[use-effect-debugger] ', changedDeps)
+  }
+
+  useEffect(effectHook, dependencies)
 }

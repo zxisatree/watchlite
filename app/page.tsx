@@ -3,7 +3,7 @@
 import { useContext, useEffect, useState } from 'react'
 import { EnvContext } from './ctxt'
 import {
-  isNotUndefined,
+  fetchPlaylistItems,
   mod,
   murmurHash,
   sendChannelListRequestConcat,
@@ -12,130 +12,17 @@ import {
   sendSubscriptionUploadsRequestPipeline,
 } from './utils'
 import SearchResult from '@/components/searchResult'
-import { FullSearchResult, OauthTokenState, VideoListInfo } from './types'
+import { FullSearchResult, VideoListInfo } from './types'
 import SubscriptionSummaryList from '@/components/subscriptionSummaryList'
 import { colouredActiveTiles, colouredTiles } from './tailwindStyles'
 import VideoCard from '@/components/videoCard'
-
-type BaseParams = {
-  part: string
-  playlistId: string | undefined
-}
-
-function handlePlaylistItemsResponse(
-  response: gapi.client.Response<gapi.client.youtube.PlaylistItemListResponse>,
-  baseParams: BaseParams,
-  acc: gapi.client.youtube.PlaylistItem[],
-):
-  | Promise<gapi.client.youtube.PlaylistItem[]>
-  | gapi.client.youtube.PlaylistItem[] {
-  const responseResult = response.result
-  const responseItems = responseResult.items
-  if (!responseItems) {
-    return acc
-  }
-
-  // send requests for all playlist items
-  const nextPageToken = responseResult.nextPageToken
-  if (nextPageToken) {
-    const nextPageParams = {
-      ...baseParams,
-      pageToken: nextPageToken,
-    }
-    return gapi.client.youtube.playlistItems
-      .list(nextPageParams)
-      .then(response =>
-        handlePlaylistItemsResponse(
-          response,
-          baseParams,
-          acc.concat(responseItems),
-        ),
-      )
-  } else {
-    return acc.concat(responseItems)
-  }
-}
-
-function handleSelectPlaylist(
-  oauthToken: OauthTokenState | null,
-  playlist: gapi.client.youtube.Playlist,
-  chosenPlaylist: gapi.client.youtube.Playlist | null,
-  setChosenPlaylist: React.Dispatch<
-    React.SetStateAction<gapi.client.youtube.Playlist | null>
-  >,
-  setPlaylistVideoListInfo: React.Dispatch<React.SetStateAction<VideoListInfo>>,
-) {
-  setChosenPlaylist((prevPlaylist: gapi.client.youtube.Playlist | null) =>
-    prevPlaylist?.id === playlist.id ? null : playlist,
-  )
-  if (chosenPlaylist?.id === playlist.id) {
-    // Deselect playlist
-    return
-  }
-
-  const baseParams = {
-    part: 'snippet',
-    playlistId: playlist.id,
-  }
-  gapi.client.youtube.playlistItems
-    .list(baseParams)
-    .then(response => handlePlaylistItemsResponse(response, baseParams, []))
-    .then(playlistItems => {
-      // Collect all videos and channels
-      const videos = playlistItems
-        .map(playlistItem => playlistItem.snippet?.resourceId?.videoId)
-        .filter(isNotUndefined)
-      const channels = Array.from(
-        new Set(
-          playlistItems
-            .map(playlistItem => playlistItem.snippet?.videoOwnerChannelId)
-            .filter(isNotUndefined),
-        ),
-      )
-
-      console.log('playlistItems:')
-      console.log(playlistItems)
-
-      // TODO: batch by 50
-      const videoPromise = gapi.client.youtube.videos.list({
-        part: 'snippet',
-        id: videos.slice(0, 50).join(','),
-      })
-      const channelPromise = gapi.client.youtube.channels.list({
-        part: 'snippet',
-        id: channels.slice(0, 50).join(','),
-      })
-
-      return Promise.all([videoPromise, channelPromise])
-    })
-    .then(([videoResponse, channelResponse]) => {
-      const videoItems = videoResponse.result?.items
-      const channelItems = channelResponse.result?.items
-      if (!videoItems || !channelItems) {
-        return
-      }
-
-      console.log('videoItems:')
-      console.log(videoItems)
-      console.log('channelItems:')
-      console.log(channelItems)
-
-      setPlaylistVideoListInfo({
-        videos: videoItems,
-        channels: channelItems.reduce(
-          (acc: Record<string, gapi.client.youtube.Channel>, channel) => {
-            if (channel.id) {
-              acc[channel.id] = channel
-            }
-            return acc
-          },
-          {},
-        ),
-      })
-    })
-}
+import { useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 
 export default function Page() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const chosenPlaylistId = searchParams.get('playlistId')
   const {
     gapiIsInitialised,
     subscriptions,
@@ -149,48 +36,109 @@ export default function Page() {
     gapi.client.youtube.Video[]
   >([])
   const [playlists, setPlaylists] = useState<gapi.client.youtube.Playlist[]>([])
-  // null represents no playlist chosen, and subscriptions will be displayed instead
-  const [chosenPlaylist, setChosenPlaylist] =
-    useState<gapi.client.youtube.Playlist | null>(null)
+  const [isPlaylistLoading, setIsPlaylistLoading] = useState(false)
   const [playlistVideoListInfo, setPlaylistVideoListInfo] =
     useState<VideoListInfo>({ videos: [], channels: {} })
 
   const gapiRequestLimit = 5
-  const maxVideosDisplayed = 15
+  const maxVideosDisplayed = 50
   const isOauthTokenValid = !(
     !oauthToken ||
     !oauthToken.expiry_date ||
     new Date() >= oauthToken.expiry_date
   )
-  const channelMap: Record<string, gapi.client.youtube.Channel> = {}
-  channels.forEach(channel => {
-    if (channel.id) {
-      channelMap[channel.id] = channel
-    }
 
-    // check for duplicate key error
-    if (channel.id === 'ZdDlXPWHLwI') {
-      console.log('channel:')
-      console.log(channel)
-    }
-  })
-
-  useEffect(() => {
-    if (gapiIsInitialised && oauthToken) {
-      if (new Date() < oauthToken.expiry_date) {
-        if (gapiRequestCount > gapiRequestLimit) {
-          console.log(
-            `gapiRequestCount exceeded ${gapiRequestLimit}, not sending request`,
-          )
-          return
-        }
-        setGapiRequestCount(gapiRequestCount + 1)
-        sendSubscriptionsListRequest(setSubscriptions)
-        sendPlaylistListRequest(setPlaylists)
+  const channelMap = channels.reduce(
+    (acc: Record<string, gapi.client.youtube.Channel>, channel) => {
+      if (channel.id && channel.id in acc) {
+        console.log('subscriptions duplicate key channel:')
+        console.log(channel)
       }
+
+      if (channel.id) {
+        acc[channel.id] = channel
+      }
+      return acc
+    },
+    {},
+  )
+
+  // check duplicate videos
+  subscriptionVideos.reduce((acc, video) => {
+    if (video.id && acc.has(video.id)) {
+      console.log('subscriptions duplicate key video:')
+      console.log(video)
+    }
+    acc.add(video.id || '')
+    return acc
+  }, new Set<string>())
+
+  const playlistMap = playlists.reduce(
+    (acc: Record<string, gapi.client.youtube.Playlist>, playlist) => {
+      if (playlist.id) {
+        acc[playlist.id] = playlist
+      }
+      return acc
+    },
+    {},
+  )
+
+  // console.log('playlistVideoListInfo:')
+  // console.log(playlistVideoListInfo)
+  // console.log('gapiRequestCount:')
+  // console.log(gapiRequestCount)
+
+  // fetch subscriptions and playlists
+  useEffect(() => {
+    if (
+      gapiIsInitialised &&
+      oauthToken &&
+      new Date() < oauthToken.expiry_date
+    ) {
+      if (gapiRequestCount > gapiRequestLimit) {
+        console.log(
+          `gapiRequestCount exceeded ${gapiRequestLimit}, not sending request`,
+        )
+        return
+      }
+      setGapiRequestCount(gapiRequestCount + 1)
+      sendSubscriptionsListRequest(setSubscriptions)
+      sendPlaylistListRequest(setPlaylists)
     }
   }, [gapiIsInitialised, oauthToken])
 
+  // fetch playlist videos
+  useEffect(() => {
+    if (
+      !chosenPlaylistId ||
+      !gapiIsInitialised ||
+      !playlistMap[chosenPlaylistId]
+    ) {
+      return
+    }
+    // console.log("playlistMap:")
+    // console.log(playlistMap)
+
+    if (gapiRequestCount > gapiRequestLimit) {
+      console.log(
+        `gapiRequestCount exceeded ${gapiRequestLimit}, not sending request`,
+      )
+      return
+    }
+    setGapiRequestCount(gapiRequestCount + 1)
+
+    fetchPlaylistItems(
+      playlistMap[chosenPlaylistId],
+      setPlaylistVideoListInfo,
+      setIsPlaylistLoading,
+    )
+  }, [
+    gapiIsInitialised,
+    chosenPlaylistId,
+    chosenPlaylistId && playlistMap[chosenPlaylistId],
+  ])
+
+  // fetch subscription videos
   useEffect(() => {
     const channelIds = subscriptions.map(
       subscription => subscription.snippet?.resourceId?.channelId || '',
@@ -241,7 +189,7 @@ export default function Page() {
             murmurHash(playlist.id || ''),
             colouredTiles.length,
           )
-          const isActivePlaylist = chosenPlaylist?.id === playlist.id
+          const isActivePlaylist = chosenPlaylistId === playlist.id
           return (
             <button
               className={
@@ -250,15 +198,16 @@ export default function Page() {
                   : colouredTiles[tileIdx]
               }
               key={playlist.id}
-              onClick={() =>
-                handleSelectPlaylist(
-                  oauthToken,
-                  playlist,
-                  chosenPlaylist,
-                  setChosenPlaylist,
-                  setPlaylistVideoListInfo,
-                )
-              }
+              onClick={() => {
+                if (chosenPlaylistId === playlist.id) {
+                  // Deselect playlist
+                  router.push('/')
+                  return
+                }
+
+                setIsPlaylistLoading(true)
+                router.push(`/?playlistId=${playlist.id}`)
+              }}
             >
               {playlist.snippet?.title}
             </button>
@@ -266,13 +215,14 @@ export default function Page() {
         })}
       </div>
       <div className='text-4xl my-4 pt-2 border-t-2 border-gray-500 w-full text-center'>
-        {chosenPlaylist
-          ? `${chosenPlaylist?.snippet?.title} videos`
+        {chosenPlaylistId
+          ? `${playlistMap[chosenPlaylistId]?.snippet?.title} videos`
           : `Subscription videos`}{' '}
         (first {maxVideosDisplayed})
       </div>
-      {chosenPlaylist !== null
+      {chosenPlaylistId
         ? // playlistVideoListInfo is not modified until query completes
+          !isPlaylistLoading &&
           playlistVideoListInfo.videos
             .slice(0, maxVideosDisplayed)
             .map(video => (

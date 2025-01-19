@@ -38,8 +38,7 @@ function loadComments(
 export default function Play() {
   const { gapiIsInitialised } = useContext(EnvContext)
   const searchParams = useSearchParams()
-  // TODO: handle case where videoId is not found
-  const videoId = searchParams.get('v') || 'eeZzCoghZzw'
+  const videoId = searchParams.get('v') || ''
   const [video, setVideo] = useState<gapi.client.youtube.VideoSnippet | null>(
     null,
   )
@@ -47,7 +46,7 @@ export default function Play() {
   console.log(video)
 
   useEffect(() => {
-    if (gapiIsInitialised) {
+    if (gapiIsInitialised && videoId !== '') {
       gapi.client.youtube.videos
         .list({
           part: 'snippet,statistics',
@@ -64,6 +63,8 @@ export default function Play() {
 
   if (!video) {
     return <div>Loading...</div>
+  } else if (videoId === '') {
+    return <div>No video found. Video ID might be empty.</div>
   }
   return (
     <div className='w-full h-full flex flex-col justify-center items-center p-2 mb-10'>
