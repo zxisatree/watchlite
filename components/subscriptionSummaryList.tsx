@@ -13,11 +13,9 @@ function handleToggle(
 }
 
 export default function SubscriptionSummaryList({
-  subscriptions,
   channels,
   channelMap,
 }: Readonly<{
-  subscriptions: gapi.client.youtube.Subscription[]
   channels: gapi.client.youtube.Channel[]
   channelMap: Record<string, gapi.client.youtube.Channel>
 }>) {
@@ -35,27 +33,24 @@ export default function SubscriptionSummaryList({
         ref={inputRef}
       />
       <div className='flex flex-row space-x-3 overflow-x-auto pb-3'>
-        {channels.length === subscriptions.length &&
-          subscriptions
-            ?.filter(subscription => {
-              const channel =
-                channelMap[subscription.snippet?.resourceId?.channelId || '']
-              return (
-                channel.snippet?.title
-                  ?.toLowerCase()
-                  .includes(subscriptionSearch.toLowerCase()) ||
-                channel.snippet?.description
-                  ?.toLowerCase()
-                  .includes(subscriptionSearch.toLowerCase())
-              )
-            })
-            .map(subscription => (
-              <SubscriptionCard
-                key={subscription.id}
-                subscription={subscription}
-                channelMap={channelMap}
-              />
-            ))}
+        {channels
+          ?.filter(channel => {
+            return (
+              channel.snippet?.title
+                ?.toLowerCase()
+                .includes(subscriptionSearch.toLowerCase()) ||
+              channel.snippet?.description
+                ?.toLowerCase()
+                .includes(subscriptionSearch.toLowerCase())
+            )
+          })
+          .map(channel => (
+            <SubscriptionCard
+              key={channel.id}
+              channel={channel}
+              channelMap={channelMap}
+            />
+          ))}
       </div>
     </details>
   )

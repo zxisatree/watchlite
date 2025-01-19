@@ -100,33 +100,13 @@ export function sendChannelListRequest(
   })
 }
 
-/** Add to existing list of channels instead of replacing */
-export function sendChannelListRequestConcat(
-  channelIds: string[],
-  setChannelResults: Dispatch<SetStateAction<gapi.client.youtube.Channel[]>>,
-) {
-  const channelListRequest = gapi.client.youtube.channels.list({
-    part: 'snippet',
-    id: channelIds.join(),
-  })
-  channelListRequest.execute(function (
-    response: gapi.client.Response<gapi.client.youtube.ChannelListResponse>,
-  ) {
-    const channelList = response.result
-    setChannelResults(prevChannels => [
-      ...prevChannels,
-      ...(channelList.items || []),
-    ])
-  })
-}
-
 /**
  * Get 5 most recent videos from each subscription
  */
 export function fetchSubscriptionUploadsRequestPipeline(
   channelIds: string[],
-  // setPipelineResults: Dispatch<SetStateAction<gapi.client.youtube.Video[]>>,
   setPlaylistVideoListInfo: Dispatch<SetStateAction<VideoListInfo>>,
+  setIsPlaylistLoading: Dispatch<SetStateAction<boolean>>,
 ) {
   // batch in 50s
   // for each subscription, get uploads playlist id
@@ -191,22 +171,11 @@ export function fetchSubscriptionUploadsRequestPipeline(
               )
             }
           }
+          if (i + 50 >= channelIds.length) {
+            setIsPlaylistLoading(false)
+          }
           return { videos, channels }
         })
-        // setPipelineResults(prevResults => {
-        //   let result = prevResults
-        //   for (const videoResponse of videoResponses) {
-        //     for (const video of videoResponse.result.items || []) {
-        //       result = binaryInsert(
-        //         result,
-        //         video,
-        //         // will cause videos to be unsorted if video.snippet is null
-        //         vKeyFn => vKeyFn.snippet?.publishedAt || '',
-        //       )
-        //     }
-        //   }
-        //   return result.reverse()
-        // })
       },
     )
   }
@@ -232,51 +201,77 @@ export function sendQueryRequest(
   })
 }
 
-export function sendSubscriptionsListRequest(
-  setSubscriptions: Dispatch<
-    SetStateAction<gapi.client.youtube.Subscription[]>
-  >,
-) {
-  // reset
-  setSubscriptions([])
+export function handleSubscriptionsResponse(
+  response: gapi.client.Response<gapi.client.youtube.SubscriptionListResponse>,
+  baseParams: {
+    part: string
+    mine: boolean
+  },
+  acc: gapi.client.youtube.Subscription[],
+):
+  | Promise<gapi.client.youtube.Subscription[]>
+  | gapi.client.youtube.Subscription[] {
+  const responseResult = response.result
+  const responseItems = responseResult.items
 
-  const baseParams = {
+  if (!responseItems) {
+    return acc
+  }
+
+  const nextPageToken = responseResult.nextPageToken
+  if (nextPageToken) {
+    const nextPageParams = {
+      ...baseParams,
+      pageToken: nextPageToken,
+    }
+    return gapi.client.youtube.subscriptions
+      .list(nextPageParams)
+      .then(response =>
+        handleSubscriptionsResponse(
+          response,
+          baseParams,
+          acc.concat(responseItems),
+        ),
+      )
+  } else {
+    return acc.concat(responseItems)
+  }
+}
+
+export function fetchSubscribedChannels(
+  setChannels: Dispatch<SetStateAction<gapi.client.youtube.Channel[]>>,
+) {
+  const subscriptionBaseParams = {
     part: 'contentDetails,snippet',
     mine: true,
   }
-  const subscriptionsRequest =
-    gapi.client.youtube.subscriptions.list(baseParams)
-
-  let allSubscriptions: gapi.client.youtube.Subscription[] = []
-
-  function handleSubscriptionResponse(
-    response: gapi.client.Response<gapi.client.youtube.SubscriptionListResponse>,
-  ) {
-    const responseResult = response.result
-    const responseItems = responseResult.items
-
-    if (!responseItems) {
-      return
-    }
-
-    allSubscriptions = allSubscriptions.concat(responseItems)
-    const nextPageToken = responseResult.nextPageToken
-
-    if (nextPageToken) {
-      const nextPageParams = {
-        ...baseParams,
-        pageToken: nextPageToken,
+  gapi.client.youtube.subscriptions
+    .list(subscriptionBaseParams)
+    .then(response =>
+      handleSubscriptionsResponse(response, subscriptionBaseParams, []),
+    )
+    .then(subscriptions => {
+      const result = []
+      for (let i = 0; i < subscriptions.length; i += 50) {
+        result.push(
+          gapi.client.youtube.channels.list({
+            part: 'snippet',
+            id: subscriptions
+              .slice(i, i + 50)
+              .map(subscription => subscription.snippet?.resourceId?.channelId)
+              .join(),
+          }),
+        )
       }
-      const nextPageRequest =
-        gapi.client.youtube.subscriptions.list(nextPageParams)
-      // console.log(`nextPageToken: ${nextPageToken}`)
-      nextPageRequest.execute(handleSubscriptionResponse)
-    } else {
-      setSubscriptions(allSubscriptions)
-    }
-  }
-
-  subscriptionsRequest.execute(handleSubscriptionResponse)
+      return Promise.all(result)
+    })
+    .then(channelResponses => {
+      setChannels(
+        channelResponses.flatMap(
+          channelResponse => channelResponse.result.items || [],
+        ),
+      )
+    })
 }
 
 export function fetchPlaylistItems(

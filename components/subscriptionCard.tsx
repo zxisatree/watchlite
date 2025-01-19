@@ -2,15 +2,15 @@ import { chooseThumbnail } from '@/app/utils'
 import CircularImage from './circularImage'
 
 export default function SubscriptionCard({
-  subscription,
+  channel,
   channelMap,
 }: Readonly<{
-  subscription: gapi.client.youtube.Subscription
+  channel: gapi.client.youtube.Channel
   channelMap: Record<string, gapi.client.youtube.Channel>
 }>) {
   // should always be defined if channels have all been fetched
   // const linkUrl = channelDetails.snippet?.customUrl
-  const channelId = subscription.snippet?.resourceId?.channelId || ''
+  const channelId = channel.id || ''
   const channelDetails = channelMap[channelId]
   const channelThumbnails = channelDetails.snippet?.thumbnails
   return (
@@ -22,7 +22,7 @@ export default function SubscriptionCard({
         />
       )}
       <div className='overflow-hidden whitespace-nowrap overflow-ellipsis max-w-full'>
-        {subscription.snippet?.title}
+        {channel.snippet?.title}
       </div>
     </div>
   )

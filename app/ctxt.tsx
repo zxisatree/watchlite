@@ -19,8 +19,6 @@ export const EnvContext = createContext<EnvContextType>({
   GAPI_CLIENT_SECRET: '',
   gapiIsInitialised: false,
   setGapiIsInitialised: () => {},
-  subscriptions: [],
-  setSubscriptions: () => {},
   oauthToken: null,
   setOauthToken: () => {},
   gapiRequestCount: 0,
@@ -33,9 +31,6 @@ export default function CtxtWrapper({
   children,
 }: Readonly<CtxtWrapperProps>) {
   const [gapiIsInitialised, setGapiIsInitialised] = useState(false)
-  const [subscriptions, setSubscriptions] = useState<
-    gapi.client.youtube.Subscription[]
-  >([])
   const [oauthToken, setOauthToken] = useState<OauthTokenState | null>(null)
   const [gapiRequestCount, setGapiRequestCount] = useState(0)
 
@@ -65,8 +60,6 @@ export default function CtxtWrapper({
         ...envVars,
         gapiIsInitialised,
         setGapiIsInitialised,
-        subscriptions,
-        setSubscriptions,
         oauthToken,
         setOauthToken,
         gapiRequestCount,

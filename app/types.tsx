@@ -21,8 +21,6 @@ export type EnvContextType = {
   GAPI_CLIENT_SECRET: string
   gapiIsInitialised: boolean
   setGapiIsInitialised: Dispatch<SetStateAction<boolean>>
-  subscriptions: gapi.client.youtube.Subscription[]
-  setSubscriptions: Dispatch<SetStateAction<gapi.client.youtube.Subscription[]>>
   oauthToken: OauthTokenState | null
   setOauthToken: Dispatch<SetStateAction<OauthTokenState | null>>
   gapiRequestCount: number
