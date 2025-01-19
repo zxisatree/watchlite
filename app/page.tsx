@@ -72,6 +72,7 @@ export default function Page() {
     {},
   )
 
+  // generate video count summary string
   const chosenPlaylist = playlistMap[chosenPlaylistId || '']
   const playlistItemCount = chosenPlaylistId
     ? chosenPlaylist?.contentDetails?.itemCount
