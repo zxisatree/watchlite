@@ -6,7 +6,7 @@ import { stringifyCount, stringifyDateRelatively } from '../app/utils'
 type VideoCardProps = {
   thumbnailDetails: gapi.client.youtube.ThumbnailDetails | undefined
   video: gapi.client.youtube.Video
-  channel: gapi.client.youtube.Channel
+  channel?: gapi.client.youtube.Channel
 }
 
 export default function VideoCard({
@@ -39,21 +39,23 @@ export default function VideoCard({
         <h5 className='mb-2 text-xl font-bold text-wrap'>
           {video.snippet?.title || 'Title not found'}
         </h5>
-        <div
-          // href={fullResult.channel?.snippet?.customUrl || ''}
-          className='flex space-x-2'
-        >
-          <Image
-            className='rounded-full aspect-square object-cover'
-            src={defaultChannelThumbnail?.url || '/default_thumbnail.png'}
-            alt={`${channel.snippet?.title} thumbnail`}
-            width={24}
-            height={24}
-          />
-          <div className='text-center text-gray-700 font-semibold'>
-            {channel.snippet?.title}
+        {channel && (
+          <div
+            // href={fullResult.channel?.snippet?.customUrl || ''}
+            className='flex space-x-2'
+          >
+            <Image
+              className='rounded-full aspect-square object-cover'
+              src={defaultChannelThumbnail?.url || '/default_thumbnail.png'}
+              alt={`${channel.snippet?.title} thumbnail`}
+              width={24}
+              height={24}
+            />
+            <div className='text-center text-gray-700 font-semibold'>
+              {channel.snippet?.title}
+            </div>
           </div>
-        </div>
+        )}
         <div className='flex items-center space-x-2'>
           <div className='flex text-gray-700 space-x-1'>
             <MdOutlineVisibility size={20} className='self-end' />

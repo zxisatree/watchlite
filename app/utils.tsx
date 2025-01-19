@@ -123,9 +123,10 @@ export function sendChannelListRequestConcat(
 /**
  * Get 5 most recent videos from each subscription
  */
-export function sendSubscriptionUploadsRequestPipeline(
+export function fetchSubscriptionUploadsRequestPipeline(
   channelIds: string[],
-  setPipelineResults: Dispatch<SetStateAction<gapi.client.youtube.Video[]>>,
+  // setPipelineResults: Dispatch<SetStateAction<gapi.client.youtube.Video[]>>,
+  setPlaylistVideoListInfo: Dispatch<SetStateAction<VideoListInfo>>,
 ) {
   // batch in 50s
   // for each subscription, get uploads playlist id
@@ -133,11 +134,12 @@ export function sendSubscriptionUploadsRequestPipeline(
   // then get video for each playlist
   const resultsPerSubscription = 5
   for (let i = 0; i < channelIds.length; i += 50) {
-    gapi.client.youtube.channels
-      .list({
-        part: 'contentDetails',
-        id: channelIds.slice(i, i + 50).join(),
-      })
+    const channels = gapi.client.youtube.channels.list({
+      part: 'contentDetails',
+      id: channelIds.slice(i, i + 50).join(),
+    })
+
+    const videos = channels
       .then(response => {
         // response.result.items must exist
         const nextRequests = response.result.items!.map(channelResult =>
@@ -169,22 +171,44 @@ export function sendSubscriptionUploadsRequestPipeline(
         }
         return Promise.all(result)
       })
-      .then(videoResponses => {
-        setPipelineResults(prevResults => {
-          let result = prevResults
+
+    Promise.all([videos, channels]).then(
+      ([videoResponses, channelResponses]) => {
+        setPlaylistVideoListInfo(prevInfo => {
+          let { videos } = prevInfo
+          const { channels } = prevInfo
+          for (const channel of channelResponses.result.items || []) {
+            channels[channel.id!] = channel
+          }
           for (const videoResponse of videoResponses) {
             for (const video of videoResponse.result.items || []) {
-              result = binaryInsert(
-                result,
+              videos = binaryInsert(
+                videos,
                 video,
                 // will cause videos to be unsorted if video.snippet is null
                 vKeyFn => vKeyFn.snippet?.publishedAt || '',
+                true,
               )
             }
           }
-          return result.reverse()
+          return { videos, channels }
         })
-      })
+        // setPipelineResults(prevResults => {
+        //   let result = prevResults
+        //   for (const videoResponse of videoResponses) {
+        //     for (const video of videoResponse.result.items || []) {
+        //       result = binaryInsert(
+        //         result,
+        //         video,
+        //         // will cause videos to be unsorted if video.snippet is null
+        //         vKeyFn => vKeyFn.snippet?.publishedAt || '',
+        //       )
+        //     }
+        //   }
+        //   return result.reverse()
+        // })
+      },
+    )
   }
 }
 
@@ -567,6 +591,7 @@ export function binaryInsert<T, U>(
   arr: Array<T>,
   val: T,
   keyFn: (item: T) => U,
+  descending: boolean = false,
 ) {
   if (arr.length === 0) {
     return [val]
@@ -574,15 +599,16 @@ export function binaryInsert<T, U>(
   let lo = 0
   let hi = arr.length - 1
   const target = keyFn(val)
+  const compare = (a: U, b: U) => (descending ? a > b : a < b)
   while (lo < hi) {
     const mid = lo + Math.floor((hi - lo) / 2)
-    if (keyFn(arr[mid]) < target) {
+    if (compare(keyFn(arr[mid]), target)) {
       lo = mid + 1
     } else {
       hi = mid
     }
   }
-  if (keyFn(arr[lo]) < target) {
+  if (compare(keyFn(arr[lo]), target)) {
     return arr.slice(0, lo + 1).concat(val, arr.slice(lo + 1))
   } else {
     return arr.slice(0, lo).concat(val, arr.slice(lo))

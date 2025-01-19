@@ -9,10 +9,9 @@ import {
   sendChannelListRequestConcat,
   sendPlaylistListRequest,
   sendSubscriptionsListRequest,
-  sendSubscriptionUploadsRequestPipeline,
+  fetchSubscriptionUploadsRequestPipeline,
 } from './utils'
-import SearchResult from '@/components/searchResult'
-import { FullSearchResult, VideoListInfo } from './types'
+import { VideoListInfo } from './types'
 import SubscriptionSummaryList from '@/components/subscriptionSummaryList'
 import { colouredActiveTiles, colouredTiles } from './tailwindStyles'
 import VideoCard from '@/components/videoCard'
@@ -31,14 +30,15 @@ export default function Page() {
     gapiRequestCount,
     setGapiRequestCount,
   } = useContext(EnvContext)
-  const [channels, setChannels] = useState<gapi.client.youtube.Channel[]>([])
-  const [subscriptionVideos, setSubscriptionVideos] = useState<
-    gapi.client.youtube.Video[]
+  const [subscribedChannels, setSubscribedChannels] = useState<
+    gapi.client.youtube.Channel[]
   >([])
   const [playlists, setPlaylists] = useState<gapi.client.youtube.Playlist[]>([])
   const [isPlaylistLoading, setIsPlaylistLoading] = useState(false)
   const [playlistVideoListInfo, setPlaylistVideoListInfo] =
     useState<VideoListInfo>({ videos: [], channels: {} })
+  console.log('playlistVideoListInfo:')
+  console.log(playlistVideoListInfo)
 
   const gapiRequestLimit = 5
   const maxVideosDisplayed = 50
@@ -48,10 +48,10 @@ export default function Page() {
     new Date() >= oauthToken.expiry_date
   )
 
-  const channelMap = channels.reduce(
+  const channelMap = subscribedChannels.reduce(
     (acc: Record<string, gapi.client.youtube.Channel>, channel) => {
       if (channel.id && channel.id in acc) {
-        console.log('subscriptions duplicate key channel:')
+        console.error('subscriptions duplicate key channel:')
         console.log(channel)
       }
 
@@ -63,16 +63,6 @@ export default function Page() {
     {},
   )
 
-  // check duplicate videos
-  subscriptionVideos.reduce((acc, video) => {
-    if (video.id && acc.has(video.id)) {
-      console.log('subscriptions duplicate key video:')
-      console.log(video)
-    }
-    acc.add(video.id || '')
-    return acc
-  }, new Set<string>())
-
   const playlistMap = playlists.reduce(
     (acc: Record<string, gapi.client.youtube.Playlist>, playlist) => {
       if (playlist.id) {
@@ -83,11 +73,11 @@ export default function Page() {
     {},
   )
 
-  const playlistItemCount =
-    playlistMap[chosenPlaylistId || '']?.contentDetails?.itemCount
-  const videoCount = !chosenPlaylistId
-    ? Math.min(maxVideosDisplayed, subscriptionVideos.length)
-    : playlistItemCount
+  const chosenPlaylist = playlistMap[chosenPlaylistId || '']
+  const playlistItemCount = chosenPlaylistId
+    ? chosenPlaylist?.contentDetails?.itemCount
+    : playlistVideoListInfo.videos.length
+  const videoCount = playlistItemCount
     ? Math.min(maxVideosDisplayed, playlistItemCount)
     : maxVideosDisplayed
   const videoCountString = `${
@@ -164,15 +154,19 @@ export default function Page() {
 
       // batch in 50s (max filter size)
       for (let i = 0; i < channelIds.length; i += 50) {
-        sendChannelListRequestConcat(channelIds.slice(i, i + 50), setChannels)
+        sendChannelListRequestConcat(
+          channelIds.slice(i, i + 50),
+          setSubscribedChannels,
+        )
       }
 
       // get subscription videos
-      sendSubscriptionUploadsRequestPipeline(
+      fetchSubscriptionUploadsRequestPipeline(
         subscriptions.map(
           subscription => subscription.snippet?.resourceId?.channelId || '',
         ),
-        setSubscriptionVideos,
+        setPlaylistVideoListInfo,
+        // setSubscriptionVideos,
       )
     }
   }, [subscriptions])
@@ -190,7 +184,7 @@ export default function Page() {
       )}
       <SubscriptionSummaryList
         subscriptions={subscriptions}
-        channels={channels}
+        channels={subscribedChannels}
         channelMap={channelMap}
       />
       <div className='grid grid-cols-5 gap-2'>
@@ -246,14 +240,20 @@ export default function Page() {
                 }
               />
             ))
-        : subscriptionVideos.slice(0, maxVideosDisplayed).map(video => {
-            const channelId = video.snippet?.channelId
-            const result: FullSearchResult = { video }
-            if (channelId && channelId in channelMap) {
-              result.channel = channelMap[channelId]
-            }
-            return <SearchResult key={video.id} fullResult={result} />
-          })}
+        : playlistVideoListInfo.videos
+            .slice(0, maxVideosDisplayed)
+            .map(video => {
+              const channelId = video.snippet?.channelId
+              const channel = channelMap[channelId || '']
+              return (
+                <VideoCard
+                  key={video.id}
+                  thumbnailDetails={video.snippet?.thumbnails}
+                  video={video}
+                  channel={channel}
+                />
+              )
+            })}
     </div>
   )
 }
