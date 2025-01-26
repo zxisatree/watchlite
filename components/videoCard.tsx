@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { MdOutlineVisibility, MdCalendarToday, MdThumbUp } from 'react-icons/md'
 import { stringifyCount, stringifyDateRelatively } from '../app/utils'
+import ResultCard from './resultCard'
 
 type VideoCardProps = {
   thumbnailDetails: gapi.client.youtube.ThumbnailDetails | undefined
@@ -19,7 +20,7 @@ export default function VideoCard({
   const defaultUrl = defaultVideoThumbnail?.url
   // height is usually 360, width is usually 480
   return (
-    <div className='w-[70%] min-w-[750px] p-1 mb-2 max-h-[360px] flex flex-row bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-200 transition-colors'>
+    <ResultCard>
       <Link
         href={`/watch?v=${video.id}`}
         className='w-[420px] h-[300px] flex-shrink-0 flex-grow-0 relative'
@@ -96,6 +97,6 @@ export default function VideoCard({
           </div>
         </Link>
       </div>
-    </div>
+    </ResultCard>
   )
 }

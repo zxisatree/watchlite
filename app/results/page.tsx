@@ -98,7 +98,7 @@ export default function SearchPage() {
   }
 
   return (
-    <div className='flex flex-col justify-center items-center'>
+    <div className='flex flex-col justify-center items-center mt-2'>
       {fullResults?.map(result => (
         <SearchResult key={keySearchResultById(result)} fullResult={result} />
       ))}
