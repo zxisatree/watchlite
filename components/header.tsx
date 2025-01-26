@@ -8,6 +8,9 @@ import { blueButton, yellowButton } from '@/app/tailwindStyles'
 import { MdSearch } from 'react-icons/md'
 import { randomBytes } from 'crypto'
 import { csrfStateKey } from '@/app/constants'
+import Link from 'next/link'
+import { IconContext } from 'react-icons'
+import { IoMdCheckmarkCircle, IoMdCloseCircle } from 'react-icons/io'
 
 export default function Header() {
   const router = useRouter()
@@ -20,6 +23,11 @@ export default function Header() {
   } = useContext(EnvContext)
   // console.log('Header expiry date check:')
   // console.log(new Date() >= oauthToken!.expiry_date)
+  const isOauthTokenValid = !(
+    !oauthToken ||
+    !oauthToken.expiry_date ||
+    new Date() >= oauthToken.expiry_date
+  )
   const shouldRefreshBeDisabled =
     !oauthToken ||
     !oauthToken.refresh_token ||
@@ -46,6 +54,18 @@ export default function Header() {
 
   return (
     <div className='sticky inset-0 flex flex-row items-center space-x-2 p-8 z-50 bg-gray-500 bg-opacity-50 backdrop-blur-sm'>
+      <Link href='/' className='font-bold'>
+        WatchLite
+      </Link>
+      {isOauthTokenValid ? (
+        <IconContext.Provider value={{ className: 'text-green-300' }}>
+          <IoMdCheckmarkCircle size={24} title='OAuth token is valid!' />
+        </IconContext.Provider>
+      ) : (
+        <IconContext.Provider value={{ className: 'text-red-300' }}>
+          <IoMdCloseCircle size={24} title='Invalid OAuth token.' />
+        </IconContext.Provider>
+      )}
       <button
         type='button'
         className={yellowButton}

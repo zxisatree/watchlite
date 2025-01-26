@@ -40,11 +40,6 @@ export default function Page() {
 
   const gapiRequestLimit = 5
   const maxVideosDisplayed = 50
-  const isOauthTokenValid = !(
-    !oauthToken ||
-    !oauthToken.expiry_date ||
-    new Date() >= oauthToken.expiry_date
-  )
 
   const channelMap = subscribedChannels.reduce(
     (acc: Record<string, gapi.client.youtube.Channel>, channel) => {
@@ -147,15 +142,6 @@ export default function Page() {
 
   return (
     <div className='flex flex-col justify-center items-center'>
-      {isOauthTokenValid ? (
-        <div className='bg-green-200 p-2 rounded-lg mt-2'>
-          OAuth token is valid!
-        </div>
-      ) : (
-        <div className='bg-red-200 p-2 rounded-lg mt-2'>
-          Invalid OAuth token.
-        </div>
-      )}
       <SubscriptionSummaryList
         channels={subscribedChannels}
         channelMap={channelMap}
