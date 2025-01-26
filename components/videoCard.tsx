@@ -19,11 +19,11 @@ export default function VideoCard({
   const defaultUrl = defaultVideoThumbnail?.url
   // height is usually 360, width is usually 480
   return (
-    <Link
-      href={`/watch?v=${video.id}`}
-      className='w-[70%] min-w-[750px] p-1 mb-2 max-h-[360px] flex flex-row bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-200'
-    >
-      <div className='w-[420px] h-[300px] flex-shrink-0 flex-grow-0 relative'>
+    <div className='w-[70%] min-w-[750px] p-1 mb-2 max-h-[360px] flex flex-row bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-200 transition-colors'>
+      <Link
+        href={`/watch?v=${video.id}`}
+        className='w-[420px] h-[300px] flex-shrink-0 flex-grow-0 relative'
+      >
         <Image
           className='p-2 rounded-2xl'
           src={defaultUrl || '/default_thumbnail.png'}
@@ -33,15 +33,18 @@ export default function VideoCard({
           // width={defaultVideoThumbnail ? defaultVideoThumbnail.width : 480}
           // height={defaultVideoThumbnail ? defaultVideoThumbnail.height : 360}
         />
-      </div>
+      </Link>
       {/* Unflex */}
       <div className='py-2 space-y-2'>
-        <h5 className='mb-2 text-xl font-bold text-wrap'>
+        <Link
+          href={`/watch?v=${video.id}`}
+          className='mb-2 text-xl font-bold text-wrap'
+        >
           {video.snippet?.title || 'Title not found'}
-        </h5>
+        </Link>
         {channel && (
-          <div
-            // href={fullResult.channel?.snippet?.customUrl || ''}
+          <Link
+            href={channel?.snippet?.customUrl || ''}
             className='flex space-x-2'
           >
             <Image
@@ -54,9 +57,12 @@ export default function VideoCard({
             <div className='text-center text-gray-700 font-semibold'>
               {channel.snippet?.title}
             </div>
-          </div>
+          </Link>
         )}
-        <div className='flex items-center space-x-2'>
+        <Link
+          href={`/watch?v=${video.id}`}
+          className='flex items-center space-x-2'
+        >
           <div className='flex text-gray-700 space-x-1'>
             <MdOutlineVisibility size={20} className='self-end' />
             <div className='text-center'>
@@ -79,15 +85,17 @@ export default function VideoCard({
               {stringifyCount(video.statistics?.likeCount || '0', 0)}
             </div>
           </div>
-        </div>
-        <div className='pr-8 text-gray-700 text-sm'>
-          {video.snippet?.description?.substring(0, 200)}
-          {video.snippet?.description?.length &&
-          video.snippet?.description?.length > 200
-            ? '...'
-            : ''}
-        </div>
+        </Link>
+        <Link href={`/watch?v=${video.id}`}>
+          <div className='pr-8 text-gray-700 text-sm'>
+            {video.snippet?.description?.substring(0, 200)}
+            {video.snippet?.description?.length &&
+            video.snippet?.description?.length > 200
+              ? '...'
+              : ''}
+          </div>
+        </Link>
       </div>
-    </Link>
+    </div>
   )
 }

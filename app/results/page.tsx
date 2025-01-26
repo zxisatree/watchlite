@@ -4,7 +4,7 @@ import { useContext, useEffect, useState } from 'react'
 import {
   keySearchResultById,
   sendChannelListRequest,
-  sendQueryRequest,
+  sendSearchListRequest,
   sendVideoStatsRequest,
 } from '../utils'
 import { FullSearchResult } from '../types'
@@ -30,7 +30,7 @@ export default function SearchPage() {
 
   useEffect(() => {
     if (gapiIsInitialised && query) {
-      sendQueryRequest(query, setSearchResults)
+      sendSearchListRequest(query, setSearchResults)
     }
   }, [gapiIsInitialised, query])
 

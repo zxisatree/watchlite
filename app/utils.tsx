@@ -181,7 +181,7 @@ export function fetchSubscriptionUploadsRequestPipeline(
   }
 }
 
-export function sendQueryRequest(
+export function sendSearchListRequest(
   queryString: string,
   setSearchResults: Dispatch<
     SetStateAction<gapi.client.youtube.SearchResult[]>
@@ -197,45 +197,10 @@ export function sendQueryRequest(
     response: gapi.client.Response<gapi.client.youtube.SearchListResponse>,
   ) {
     const searchList = response.result
+    console.log('searchList:')
+    console.log(searchList)
     setSearchResults(searchList.items || [])
   })
-}
-
-export function handleSubscriptionsResponse(
-  response: gapi.client.Response<gapi.client.youtube.SubscriptionListResponse>,
-  baseParams: {
-    part: string
-    mine: boolean
-  },
-  acc: gapi.client.youtube.Subscription[],
-):
-  | Promise<gapi.client.youtube.Subscription[]>
-  | gapi.client.youtube.Subscription[] {
-  const responseResult = response.result
-  const responseItems = responseResult.items
-
-  if (!responseItems) {
-    return acc
-  }
-
-  const nextPageToken = responseResult.nextPageToken
-  if (nextPageToken) {
-    const nextPageParams = {
-      ...baseParams,
-      pageToken: nextPageToken,
-    }
-    return gapi.client.youtube.subscriptions
-      .list(nextPageParams)
-      .then(response =>
-        handleSubscriptionsResponse(
-          response,
-          baseParams,
-          acc.concat(responseItems),
-        ),
-      )
-  } else {
-    return acc.concat(responseItems)
-  }
 }
 
 export function fetchSubscribedChannels(
@@ -248,7 +213,15 @@ export function fetchSubscribedChannels(
   gapi.client.youtube.subscriptions
     .list(subscriptionBaseParams)
     .then(response =>
-      handleSubscriptionsResponse(response, subscriptionBaseParams, []),
+      handleNextPageResponses<
+        gapi.client.youtube.SubscriptionListResponse,
+        gapi.client.youtube.Subscription
+      >(
+        response,
+        gapi.client.youtube.subscriptions.list,
+        subscriptionBaseParams,
+        [],
+      ),
     )
     .then(subscriptions => {
       const result = []
@@ -410,6 +383,7 @@ export function chooseThumbnail(
   }
 }
 
+// TODO: use handleNextPageResponses
 export function sendPlaylistListRequest(
   setPlaylists: Dispatch<SetStateAction<gapi.client.youtube.Playlist[]>>,
 ) {
@@ -447,6 +421,51 @@ export function sendPlaylistListRequest(
   }
 
   playlistsRequest.execute(handlePlaylistResponse)
+}
+
+type PaginatedResponse<R> = { items?: R[]; nextPageToken?: string }
+/**
+ * Recursively flattens responses from gapi requests that paginate results
+ *
+ * @param response Parameter of .then callback
+ * @param gapiRequestFn gapi function to send request. e.g. gapi.client.youtube.playlists.list
+ * @param baseParams Parameters to send to gapiRequestFn
+ * @param acc Accumulator array for results
+ * @returns Array of results
+ */
+export function handleNextPageResponses<T extends PaginatedResponse<R>, R>(
+  response: gapi.client.Response<T>,
+  gapiRequestFn: (params: typeof baseParams) => gapi.client.Request<T>,
+  baseParams: {
+    part: string
+  },
+  acc: R[] = [] as R[],
+): Promise<R[]> | R[] {
+  const responseResult = response.result
+  const responseItems = responseResult.items
+
+  if (!responseItems) {
+    return acc
+  }
+
+  const nextPageToken = responseResult.nextPageToken
+  if (nextPageToken) {
+    const nextPageParams = {
+      ...baseParams,
+      pageToken: nextPageToken,
+    }
+    return gapiRequestFn(nextPageParams).then(
+      (response: gapi.client.Response<T>) =>
+        handleNextPageResponses(
+          response,
+          gapiRequestFn,
+          baseParams,
+          acc.concat(responseItems),
+        ),
+    )
+  } else {
+    return acc.concat(responseItems)
+  }
 }
 
 export function handlePlaylistItemsResponse(

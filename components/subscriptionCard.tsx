@@ -17,7 +17,7 @@ export default function SubscriptionCard({
     <div className='max-w-15 space-y-2 flex flex-col items-center bg-gray-300 bg-opacity-50 p-2 rounded-lg'>
       {channelThumbnails && (
         <CircularImage
-          thumbnail={chooseThumbnail(channelThumbnails)}
+          thumbnailUrl={chooseThumbnail(channelThumbnails).url}
           diameter={24}
         />
       )}

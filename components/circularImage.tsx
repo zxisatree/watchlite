@@ -1,19 +1,22 @@
 import Image from 'next/image'
 
 export default function CircularImage({
-  thumbnail,
-  diameter,
+  thumbnailUrl,
+  diameter = 24,
 }: {
-  thumbnail: gapi.client.youtube.Thumbnail
-  diameter: number
+  thumbnailUrl: string | undefined
+  diameter?: number
 }) {
   return (
-    <Image
-      className='rounded-full aspect-square object-cover'
-      src={thumbnail.url || '/default_thumbnail.png'}
-      alt={`${thumbnail.url} thumbnail`}
-      width={diameter}
-      height={diameter}
-    />
+    // Reset flex
+    <div>
+      <Image
+        className='rounded-full aspect-square object-cover'
+        src={thumbnailUrl || '/default_thumbnail.png'}
+        alt={`${thumbnailUrl} thumbnail`}
+        width={diameter}
+        height={diameter}
+      />
+    </div>
   )
 }
