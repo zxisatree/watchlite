@@ -1,18 +1,22 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import Form from 'next/form'
-import { EnvContext } from '../app/ctxt'
+import { GapiContext } from '../app/gapiCtxt'
 import { useContext } from 'react'
 import { refreshOauthToken } from '@/app/utils'
 import { blueButton, yellowButton } from '@/app/tailwindStyles'
-import { MdSearch } from 'react-icons/md'
+import { MdMenu, MdSearch } from 'react-icons/md'
 import { randomBytes } from 'crypto'
 import { csrfStateKey } from '@/app/constants'
 import Link from 'next/link'
 import { IconContext } from 'react-icons'
 import { IoMdCheckmarkCircle, IoMdCloseCircle } from 'react-icons/io'
 
-export default function Header() {
+export default function Header({
+  toggleSidebar,
+}: {
+  toggleSidebar: () => void
+}) {
   const router = useRouter()
   const {
     GAPI_CLIENT_ID,
@@ -20,7 +24,7 @@ export default function Header() {
     gapiIsInitialised,
     oauthToken,
     setOauthToken,
-  } = useContext(EnvContext)
+  } = useContext(GapiContext)
   // console.log('Header expiry date check:')
   // console.log(new Date() >= oauthToken!.expiry_date)
   const isOauthTokenValid = !(
@@ -53,7 +57,10 @@ export default function Header() {
   }
 
   return (
-    <div className='sticky inset-0 flex flex-row items-center space-x-2 p-8 z-50 bg-gray-500 bg-opacity-50 backdrop-blur-sm'>
+    <div className='sticky inset-0 flex flex-row items-center space-x-2 p-8 z-40 bg-gray-500 bg-opacity-50 backdrop-blur-sm'>
+      <button onClick={toggleSidebar}>
+        <MdMenu size={24} />
+      </button>
       <Link href='/' className='font-bold'>
         WatchLite
       </Link>

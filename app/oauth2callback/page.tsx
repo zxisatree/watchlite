@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useContext, useEffect } from 'react'
-import { EnvContext } from '../ctxt'
+import { GapiContext } from '../gapiCtxt'
 import Link from 'next/link'
 import { OauthTokenState } from '../types'
 
@@ -10,7 +10,7 @@ export default function OauthCallbackPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { GAPI_CLIENT_ID, GAPI_CLIENT_SECRET, setOauthToken } =
-    useContext(EnvContext)
+    useContext(GapiContext)
 
   const params = {
     code: searchParams.get('code') || '',

@@ -1,7 +1,7 @@
 'use client'
 
 import { useContext, useEffect, useState } from 'react'
-import { EnvContext } from '../ctxt'
+import { GapiContext } from '../gapiCtxt'
 import LoadingSpinner from '@/components/loadingSpinner'
 import ChannelHead from '@/components/channelHead'
 import { greenButton } from '../tailwindStyles'
@@ -14,7 +14,7 @@ export default function ChannelPage({
   channelHandle: string
 }) {
   const { gapiIsInitialised, gapiRequestCount, setGapiRequestCount } =
-    useContext(EnvContext)
+    useContext(GapiContext)
   const [channel, setChannel] = useState<gapi.client.youtube.Channel | null>(
     null,
   )

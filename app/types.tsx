@@ -16,7 +16,7 @@ export type VideoListInfo = {
   channels: Record<string, gapi.client.youtube.Channel>
 }
 
-export type EnvContextType = {
+export type GapiContextType = {
   GAPI_API_KEY: string
   GAPI_CLIENT_ID: string
   GAPI_CLIENT_SECRET: string
@@ -26,6 +26,15 @@ export type EnvContextType = {
   setOauthToken: Dispatch<SetStateAction<OauthTokenState | null>>
   gapiRequestCount: number
   setGapiRequestCount: Dispatch<SetStateAction<number>>
+}
+
+export type UserContextType = {
+  subscriptions: gapi.client.youtube.Subscription[]
+  setSubscriptions: Dispatch<SetStateAction<gapi.client.youtube.Subscription[]>>
+  subscribedChannels: gapi.client.youtube.Channel[]
+  setSubscribedChannels: Dispatch<SetStateAction<gapi.client.youtube.Channel[]>>
+  playlists: gapi.client.youtube.Playlist[]
+  setPlaylists: Dispatch<SetStateAction<gapi.client.youtube.Playlist[]>>
 }
 
 export type OauthTokenState = {

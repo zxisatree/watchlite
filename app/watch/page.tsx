@@ -13,7 +13,7 @@ import {
   useEffect,
   useState,
 } from 'react'
-import { EnvContext } from '../ctxt'
+import { GapiContext } from '../gapiCtxt'
 
 /** Limit to 50 comments for now */
 function loadComments(
@@ -36,7 +36,7 @@ function loadComments(
 }
 
 export default function Play() {
-  const { gapiIsInitialised } = useContext(EnvContext)
+  const { gapiIsInitialised } = useContext(GapiContext)
   const searchParams = useSearchParams()
   const videoId = searchParams.get('v') || ''
   const [video, setVideo] = useState<gapi.client.youtube.VideoSnippet | null>(

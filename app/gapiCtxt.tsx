@@ -1,9 +1,9 @@
 'use client'
 
 import { createContext, useEffect, useState } from 'react'
-import { EnvContextType, OauthTokenState } from './types'
+import { GapiContextType, OauthTokenState } from './types'
 
-type CtxtWrapperProps = {
+type GapiCtxtWrapperProps = {
   envVars: {
     GAPI_API_KEY: string
     GAPI_CLIENT_ID: string
@@ -12,8 +12,8 @@ type CtxtWrapperProps = {
   children: React.ReactNode
 }
 
-// prevent infinite loops, only send requests max 5 times per page load
-export const EnvContext = createContext<EnvContextType>({
+// to prevent infinite loops, only send requests max 5 times per page load
+export const GapiContext = createContext<GapiContextType>({
   GAPI_API_KEY: '',
   GAPI_CLIENT_ID: '',
   GAPI_CLIENT_SECRET: '',
@@ -26,10 +26,11 @@ export const EnvContext = createContext<EnvContextType>({
 })
 
 /** Provides environment variables and global state. Also handles OAuth token parsing from localStorage */
-export default function CtxtWrapper({
+export default function GapiCtxt({
   envVars,
   children,
-}: Readonly<CtxtWrapperProps>) {
+}: Readonly<GapiCtxtWrapperProps>) {
+  // Set on <Gapi> Script's onLoad
   const [gapiIsInitialised, setGapiIsInitialised] = useState(false)
   const [oauthToken, setOauthToken] = useState<OauthTokenState | null>(null)
   const [gapiRequestCount, setGapiRequestCount] = useState(0)
@@ -55,7 +56,7 @@ export default function CtxtWrapper({
   }, [gapiIsInitialised])
 
   return (
-    <EnvContext.Provider
+    <GapiContext.Provider
       value={{
         ...envVars,
         gapiIsInitialised,
@@ -67,6 +68,6 @@ export default function CtxtWrapper({
       }}
     >
       {children}
-    </EnvContext.Provider>
+    </GapiContext.Provider>
   )
 }

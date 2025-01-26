@@ -13,8 +13,16 @@ function generateActiveTile(colour) {
   return `bg-${colour}-500 hover:bg-${colour}-700 p-2 rounded-lg mt-2 transition-colors`
 }
 
-const styleName = "ActiveTile"
-const generate = generateActiveTile
+function generateSidebarPlaylistButton(colour) {
+  return `bg-${colour}-200 hover:bg-${colour}-400 rounded-lg transition-colors font-semibold p-1 pl-2`
+}
+
+function generateActiveSidebarPlaylistButton(colour) {
+  return `bg-${colour}-500 hover:bg-${colour}-700 rounded-lg transition-colors font-semibold p-1 pl-2`
+}
+
+const styleName = "ActiveSidebarPlaylistButton"
+const generate = generateActiveSidebarPlaylistButton
 
 for (const colour of colours) {
   console.log(`export const ${colour}${styleName} = '` + generate(colour) + `'`)

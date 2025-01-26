@@ -1,14 +1,12 @@
 'use client'
 
 import { useContext, useEffect, useState } from 'react'
-import { EnvContext } from './ctxt'
+import { GapiContext } from './gapiCtxt'
 import {
   fetchPlaylistItems,
   mod,
   murmurHash,
-  sendPlaylistListRequest,
   fetchSubscriptionUploadsRequestPipeline,
-  fetchSubscribedChannels,
 } from './utils'
 import { VideoListInfo } from './types'
 import SubscriptionSummaryList from '@/components/subscriptionSummaryList'
@@ -17,29 +15,21 @@ import VideoCard from '@/components/videoCard'
 import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import LoadingSpinner from '@/components/loadingSpinner'
+import { maxVideosDisplayed, gapiRequestLimit } from './constants'
+import { UserContext } from './userCtxt'
 
 export default function Page() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const chosenPlaylistId = searchParams.get('playlistId')
-  const {
-    gapiIsInitialised,
-    oauthToken,
-    gapiRequestCount,
-    setGapiRequestCount,
-  } = useContext(EnvContext)
-  const [subscribedChannels, setSubscribedChannels] = useState<
-    gapi.client.youtube.Channel[]
-  >([])
-  const [playlists, setPlaylists] = useState<gapi.client.youtube.Playlist[]>([])
+  const { gapiIsInitialised, gapiRequestCount, setGapiRequestCount } =
+    useContext(GapiContext)
+  const { subscribedChannels, playlists } = useContext(UserContext)
   const [isPlaylistLoading, setIsPlaylistLoading] = useState(false)
   const [playlistVideoListInfo, setPlaylistVideoListInfo] =
     useState<VideoListInfo>({ videos: [], channels: {} })
   console.log('playlistVideoListInfo:')
   console.log(playlistVideoListInfo)
-
-  const gapiRequestLimit = 5
-  const maxVideosDisplayed = 50
 
   const channelMap = subscribedChannels.reduce(
     (acc: Record<string, gapi.client.youtube.Channel>, channel) => {
@@ -82,25 +72,6 @@ export default function Page() {
       ? ` out of ${playlistItemCount}`
       : ''
   }`
-
-  // fetch subscriptions and playlists
-  useEffect(() => {
-    if (
-      gapiIsInitialised &&
-      oauthToken &&
-      new Date() < oauthToken.expiry_date
-    ) {
-      if (gapiRequestCount > gapiRequestLimit) {
-        console.log(
-          `gapiRequestCount exceeded ${gapiRequestLimit}, not sending request`,
-        )
-        return
-      }
-      setGapiRequestCount(gapiRequestCount + 1)
-      sendPlaylistListRequest(setPlaylists)
-      fetchSubscribedChannels(setSubscribedChannels)
-    }
-  }, [gapiIsInitialised, oauthToken])
 
   // fetch playlist videos
   useEffect(() => {

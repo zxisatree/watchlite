@@ -9,13 +9,13 @@ import {
 } from '../utils'
 import { FullSearchResult } from '../types'
 import { useSearchParams } from 'next/navigation'
-import { EnvContext } from '../ctxt'
+import { GapiContext } from '../gapiCtxt'
 import SearchResult from '@/components/searchResult'
 
 export default function SearchPage() {
   const searchParams = useSearchParams()
   const query = searchParams.get('search_query')
-  const { gapiIsInitialised } = useContext(EnvContext)
+  const { gapiIsInitialised } = useContext(GapiContext)
 
   const [searchResults, setSearchResults] = useState<
     gapi.client.youtube.SearchResult[]
