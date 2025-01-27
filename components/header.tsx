@@ -24,14 +24,10 @@ export default function Header({
     gapiIsInitialised,
     oauthToken,
     setOauthToken,
+    isOauthTokenValid,
   } = useContext(GapiContext)
   // console.log('Header expiry date check:')
   // console.log(new Date() >= oauthToken!.expiry_date)
-  const isOauthTokenValid = !(
-    !oauthToken ||
-    !oauthToken.expiry_date ||
-    new Date() >= oauthToken.expiry_date
-  )
   const shouldRefreshBeDisabled =
     !oauthToken ||
     !oauthToken.refresh_token ||
@@ -92,7 +88,7 @@ export default function Header({
             setOauthToken,
           )
         }
-        disabled={shouldRefreshBeDisabled}
+        disabled={shouldRefreshBeDisabled && false}
       >
         Refresh OAuth token
       </button>

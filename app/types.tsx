@@ -24,6 +24,7 @@ export type GapiContextType = {
   setGapiIsInitialised: Dispatch<SetStateAction<boolean>>
   oauthToken: OauthTokenState | null
   setOauthToken: Dispatch<SetStateAction<OauthTokenState | null>>
+  isOauthTokenValid: boolean
   gapiRequestCount: number
   setGapiRequestCount: Dispatch<SetStateAction<number>>
 }

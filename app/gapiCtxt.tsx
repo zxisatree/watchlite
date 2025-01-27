@@ -21,6 +21,7 @@ export const GapiContext = createContext<GapiContextType>({
   setGapiIsInitialised: () => {},
   oauthToken: null,
   setOauthToken: () => {},
+  isOauthTokenValid: false,
   gapiRequestCount: 0,
   setGapiRequestCount: () => {},
 })
@@ -34,6 +35,11 @@ export default function GapiCtxt({
   const [gapiIsInitialised, setGapiIsInitialised] = useState(false)
   const [oauthToken, setOauthToken] = useState<OauthTokenState | null>(null)
   const [gapiRequestCount, setGapiRequestCount] = useState(0)
+  const isOauthTokenValid = !(
+    !oauthToken ||
+    !oauthToken.expiry_date ||
+    new Date() >= oauthToken.expiry_date
+  )
 
   useEffect(() => {
     if (gapiIsInitialised) {
@@ -63,7 +69,9 @@ export default function GapiCtxt({
         setGapiIsInitialised,
         oauthToken,
         setOauthToken,
+        isOauthTokenValid,
         gapiRequestCount,
+        // TODO: replace with increment function that returns bool
         setGapiRequestCount,
       }}
     >

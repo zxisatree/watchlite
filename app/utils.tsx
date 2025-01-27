@@ -53,6 +53,8 @@ export function refreshOauthToken(
   })
     .then(response => response.json())
     .then(data => {
+      console.log('Refreshing token')
+      console.log(data)
       const expiryInSeconds = new Date().getTime() + data.expires_in * 1000
       const refreshedOauthToken: OauthTokenState = {
         ...data,
