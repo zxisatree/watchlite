@@ -154,72 +154,80 @@ export function fetchSubscriptionUploadsRequestPipeline(
   // then get most recent playlistItems
   // then get video for each playlist
   const resultsPerSubscription = 5
+  const isPlaylistLoading = []
   for (let i = 0; i < channelIds.length; i += 50) {
-    const channels = gapi.client.youtube.channels.list({
-      part: 'contentDetails',
-      id: channelIds.slice(i, i + 50).join(),
-    })
+    isPlaylistLoading.push(
+      new Promise(resolve => {
+        const channels = gapi.client.youtube.channels.list({
+          part: 'contentDetails',
+          id: channelIds.slice(i, i + 50).join(),
+        })
 
-    const videos = channels
-      .then(response => {
-        // response.result.items must exist
-        const nextRequests = response.result.items!.map(channelResult =>
-          gapi.client.youtube.playlistItems.list({
-            part: 'snippet',
-            playlistId: channelResult.contentDetails?.relatedPlaylists?.uploads,
-            maxResults: resultsPerSubscription,
-          }),
-        )
+        const videos = channels
+          .then(response => {
+            // response.result.items must exist
+            const nextRequests = response.result.items!.map(channelResult =>
+              gapi.client.youtube.playlistItems.list({
+                part: 'snippet',
+                playlistId:
+                  channelResult.contentDetails?.relatedPlaylists?.uploads,
+                maxResults: resultsPerSubscription,
+              }),
+            )
 
-        // automatically flattened
-        return Promise.all(nextRequests)
-      })
-      .then(playlistItemsResponses => {
-        const flattened = playlistItemsResponses.flatMap(
-          playlistItemsResponse => playlistItemsResponse.result.items || [],
-        )
-        const result = []
-        for (let i = 0; i < flattened.length; i += 50) {
-          result.push(
-            gapi.client.youtube.videos.list({
-              part: 'snippet,statistics',
-              id: flattened
-                .slice(i, i + 50)
-                .map(item => item.snippet?.resourceId?.videoId)
-                .join(),
-            }),
-          )
-        }
-        return Promise.all(result)
-      })
-
-    Promise.all([videos, channels]).then(
-      ([videoResponses, channelResponses]) => {
-        setPlaylistVideoListInfo(prevInfo => {
-          let { videos } = prevInfo
-          const { channels } = prevInfo
-          for (const channel of channelResponses.result.items || []) {
-            channels[channel.id!] = channel
-          }
-          for (const videoResponse of videoResponses) {
-            for (const video of videoResponse.result.items || []) {
-              videos = binaryInsert(
-                videos,
-                video,
-                // will cause videos to be unsorted if video.snippet is null
-                vKeyFn => vKeyFn.snippet?.publishedAt || '',
-                true,
+            // automatically flattened
+            return Promise.all(nextRequests)
+          })
+          .then(playlistItemsResponses => {
+            const flattened = playlistItemsResponses.flatMap(
+              playlistItemsResponse => playlistItemsResponse.result.items || [],
+            )
+            const result = []
+            for (let i = 0; i < flattened.length; i += 50) {
+              result.push(
+                gapi.client.youtube.videos.list({
+                  part: 'snippet,statistics',
+                  id: flattened
+                    .slice(i, i + 50)
+                    .map(item => item.snippet?.resourceId?.videoId)
+                    .join(),
+                }),
               )
             }
-          }
-          if (i + 50 >= channelIds.length) {
-            setIsPlaylistLoading(false)
-          }
-          return { videos, channels }
-        })
-      },
+            return Promise.all(result)
+          })
+
+        Promise.all([videos, channels]).then(
+          ([videoResponses, channelResponses]) => {
+            setPlaylistVideoListInfo(prevInfo => {
+              let { videos } = prevInfo
+              const { channels } = prevInfo
+              for (const channel of channelResponses.result.items || []) {
+                channels[channel.id!] = channel
+              }
+              for (const videoResponse of videoResponses) {
+                for (const video of videoResponse.result.items || []) {
+                  videos = binaryInsert(
+                    videos,
+                    video,
+                    // will cause videos to be unsorted if video.snippet is null
+                    vKeyFn => vKeyFn.snippet?.publishedAt || '',
+                    true,
+                  )
+                }
+              }
+
+              resolve(true)
+
+              return { videos, channels }
+            })
+          },
+        )
+      }),
     )
   }
+
+  Promise.all(isPlaylistLoading).then(() => setIsPlaylistLoading(false))
 }
 
 export function fetchSubscriptions(

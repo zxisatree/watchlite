@@ -25,7 +25,7 @@ export default function Page() {
   const { gapiIsInitialised, incGapiRequestCount, isOauthTokenLoading } =
     useContext(GapiContext)
   const { subscriptions, playlists } = useContext(UserContext)
-  const [isPlaylistLoading, setIsPlaylistLoading] = useState(false)
+  const [isPlaylistLoading, setIsPlaylistLoading] = useState(true)
   const [playlistVideoListInfo, setPlaylistVideoListInfo] =
     useState<VideoListInfo>({ videos: [], channels: {} })
 
@@ -52,11 +52,11 @@ export default function Page() {
   const channelMap = subscriptions.reduce(
     (acc: Record<string, gapi.client.youtube.Channel>, subscription) => {
       const channel = subscription.channel
-      // if (channel.id && channel.id in acc) {
-      //   console.log(
-      //     `subscriptions duplicate key channel: ${channel.snippet?.title}`,
-      //   )
-      // }
+      if (channel.id && channel.id in acc) {
+        console.error(
+          `subscriptions duplicate key channel: ${channel.snippet?.title}`,
+        )
+      }
 
       if (channel.id) {
         acc[channel.id] = channel
@@ -105,7 +105,7 @@ export default function Page() {
       return
     }
 
-    if (!chosenPlaylistId && subscriptions) {
+    if (!chosenPlaylistId && subscriptions.length > 0) {
       // get subscription videos
       setIsPlaylistLoading(true)
       fetchSubscriptionUploadsRequestPipeline(
@@ -171,10 +171,11 @@ export default function Page() {
         })}
       </div>
       <div className='text-4xl my-4 pt-2 border-t-2 border-gray-500 w-full text-center'>
-        {chosenPlaylistId
-          ? `${playlistMap[chosenPlaylistId]?.snippet?.title} videos`
-          : `Subscription videos`}{' '}
-        ({videoCountString})
+        {isPlaylistLoading
+          ? 'Loading...'
+          : chosenPlaylistId
+          ? `${playlistMap[chosenPlaylistId]?.snippet?.title} videos (${videoCountString})`
+          : `Subscription videos (${videoCountString})`}
       </div>
       {isPlaylistLoading ? (
         <LoadingSpinner />
