@@ -21,12 +21,13 @@ export type GapiContextType = {
   GAPI_CLIENT_ID: string
   GAPI_CLIENT_SECRET: string
   gapiIsInitialised: boolean
-  setGapiIsInitialised: Dispatch<SetStateAction<boolean>>
+  initGapiFromCtxt: () => void
   oauthToken: OauthTokenState | null
   setOauthToken: Dispatch<SetStateAction<OauthTokenState | null>>
+  isOauthTokenLoading: boolean
+  setIsOauthTokenLoading: Dispatch<SetStateAction<boolean>>
   isOauthTokenValid: boolean
-  gapiRequestCount: number
-  setGapiRequestCount: Dispatch<SetStateAction<number>>
+  incGapiRequestCount: () => boolean
 }
 
 export type FullSubscription = {

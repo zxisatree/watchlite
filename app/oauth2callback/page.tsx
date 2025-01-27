@@ -53,6 +53,7 @@ export default function OauthCallbackPage() {
           localStorage.setItem('oauthError', err)
         })
         .finally(() => {
+          // invalidateOauthTokenState()
           router.push('/')
         })
     }

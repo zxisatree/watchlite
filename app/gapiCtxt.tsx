@@ -2,6 +2,8 @@
 
 import { createContext, useEffect, useState } from 'react'
 import { GapiContextType, OauthTokenState } from './types'
+import { initGapi } from './utils'
+import { gapiRequestLimit } from './constants'
 
 type GapiCtxtWrapperProps = {
   envVars: {
@@ -18,12 +20,13 @@ export const GapiContext = createContext<GapiContextType>({
   GAPI_CLIENT_ID: '',
   GAPI_CLIENT_SECRET: '',
   gapiIsInitialised: false,
-  setGapiIsInitialised: () => {},
+  initGapiFromCtxt: () => {},
   oauthToken: null,
   setOauthToken: () => {},
+  isOauthTokenLoading: true,
+  setIsOauthTokenLoading: () => {},
   isOauthTokenValid: false,
-  gapiRequestCount: 0,
-  setGapiRequestCount: () => {},
+  incGapiRequestCount: () => false,
 })
 
 /** Provides environment variables and global state. Also handles OAuth token parsing from localStorage */
@@ -33,13 +36,28 @@ export default function GapiCtxt({
 }: Readonly<GapiCtxtWrapperProps>) {
   // Set on <Gapi> Script's onLoad
   const [gapiIsInitialised, setGapiIsInitialised] = useState(false)
-  const [oauthToken, setOauthToken] = useState<OauthTokenState | null>(null)
   const [gapiRequestCount, setGapiRequestCount] = useState(0)
+  const [oauthToken, setOauthToken] = useState<OauthTokenState | null>(null)
+  const [isOauthTokenLoading, setIsOauthTokenLoading] = useState(true)
   const isOauthTokenValid = !(
+    isOauthTokenLoading ||
     !oauthToken ||
     !oauthToken.expiry_date ||
     new Date() >= oauthToken.expiry_date
   )
+
+  function initGapiFromCtxt() {
+    initGapi(envVars.GAPI_API_KEY, envVars.GAPI_CLIENT_ID, setGapiIsInitialised)
+  }
+
+  /** Returns false if too many requests have been sent */
+  function incGapiRequestCount() {
+    if (gapiRequestCount > gapiRequestLimit) {
+      return false
+    }
+    setGapiRequestCount(gapiRequestCount + 1)
+    return true
+  }
 
   useEffect(() => {
     if (gapiIsInitialised) {
@@ -57,6 +75,7 @@ export default function GapiCtxt({
         }
         gapi.client.setToken({ access_token: oauthTokenState.access_token })
         setOauthToken(oauthTokenState)
+        setIsOauthTokenLoading(false)
       }
     }
   }, [gapiIsInitialised])
@@ -66,13 +85,13 @@ export default function GapiCtxt({
       value={{
         ...envVars,
         gapiIsInitialised,
-        setGapiIsInitialised,
+        initGapiFromCtxt,
         oauthToken,
         setOauthToken,
+        isOauthTokenLoading,
+        setIsOauthTokenLoading,
         isOauthTokenValid,
-        gapiRequestCount,
-        // TODO: replace with increment function that returns bool
-        setGapiRequestCount,
+        incGapiRequestCount,
       }}
     >
       {children}

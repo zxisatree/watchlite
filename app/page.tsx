@@ -22,14 +22,32 @@ export default function Page() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const chosenPlaylistId = searchParams.get('playlistId')
-  const { gapiIsInitialised, gapiRequestCount, setGapiRequestCount } =
+  const { gapiIsInitialised, incGapiRequestCount, isOauthTokenLoading } =
     useContext(GapiContext)
   const { subscriptions, playlists } = useContext(UserContext)
   const [isPlaylistLoading, setIsPlaylistLoading] = useState(false)
   const [playlistVideoListInfo, setPlaylistVideoListInfo] =
     useState<VideoListInfo>({ videos: [], channels: {} })
-  console.log('playlistVideoListInfo:')
-  console.log(playlistVideoListInfo)
+
+  // TODO: cache query
+  const deduplicatedVideoListInfo = {
+    videos: Array.from(
+      playlistVideoListInfo.videos
+        .reduce((acc: Map<string, gapi.client.youtube.Video>, video) => {
+          if (video && video.id && !(video.id in acc)) {
+            acc.set(video.id, video)
+          }
+          return acc
+        }, new Map())
+        .values(),
+    ),
+    channels: playlistVideoListInfo.channels,
+  }
+
+  // console.log('playlistVideoListInfo:')
+  // console.log(playlistVideoListInfo)
+  // console.log('deduplicatedVideoListInfo:')
+  // console.log(deduplicatedVideoListInfo)
 
   const channelMap = subscriptions.reduce(
     (acc: Record<string, gapi.client.youtube.Channel>, subscription) => {
@@ -62,7 +80,7 @@ export default function Page() {
   const chosenPlaylist = playlistMap[chosenPlaylistId || '']
   const playlistItemCount = chosenPlaylistId
     ? chosenPlaylist?.contentDetails?.itemCount
-    : playlistVideoListInfo.videos.length
+    : deduplicatedVideoListInfo.videos.length
   const videoCount = playlistItemCount
     ? Math.min(maxVideosDisplayed, playlistItemCount)
     : maxVideosDisplayed
@@ -80,13 +98,12 @@ export default function Page() {
       return
     }
 
-    if (gapiRequestCount > gapiRequestLimit) {
+    if (!incGapiRequestCount()) {
       console.log(
         `gapiRequestCount exceeded ${gapiRequestLimit}, not sending request`,
       )
       return
     }
-    setGapiRequestCount(gapiRequestCount + 1)
 
     if (!chosenPlaylistId && subscriptions) {
       // get subscription videos
@@ -112,13 +129,17 @@ export default function Page() {
     subscriptions,
   ])
 
-  return (
+  return isOauthTokenLoading ? (
+    <div className='h-screen w-full flex items-center justify-center'>
+      <LoadingSpinner spinnerStyles='fill-red-500' />
+    </div>
+  ) : (
     <div className='flex flex-col justify-center items-center'>
       <SubscriptionSummaryList
         channels={subscriptions.map(subscription => subscription.channel)}
         channelMap={channelMap}
       />
-      <div className='grid grid-cols-5 gap-2'>
+      <div className='px-2 grid grid-cols-5 md:grid-cols-8 xl:grid-cols-12 gap-2'>
         {playlists.map(playlist => {
           const tileIdx = mod(
             murmurHash(playlist.id || ''),
@@ -159,30 +180,34 @@ export default function Page() {
         <LoadingSpinner />
       ) : chosenPlaylistId ? (
         // playlistVideoListInfo is not modified until query completes
-        playlistVideoListInfo.videos.slice(0, maxVideosDisplayed).map(video => (
-          <VideoCard
-            key={video.id}
-            thumbnailDetails={video.snippet?.thumbnails}
-            video={video}
-            channel={
-              // channel has to exist in map
-              playlistVideoListInfo.channels[video.snippet!.channelId!]
-            }
-          />
-        ))
-      ) : (
-        playlistVideoListInfo.videos.slice(0, maxVideosDisplayed).map(video => {
-          const channelId = video.snippet?.channelId
-          const channel = channelMap[channelId || '']
-          return (
+        deduplicatedVideoListInfo.videos
+          .slice(0, maxVideosDisplayed)
+          .map(video => (
             <VideoCard
               key={video.id}
               thumbnailDetails={video.snippet?.thumbnails}
               video={video}
-              channel={channel}
+              channel={
+                // channel has to exist in map
+                deduplicatedVideoListInfo.channels[video.snippet!.channelId!]
+              }
             />
-          )
-        })
+          ))
+      ) : (
+        deduplicatedVideoListInfo.videos
+          .slice(0, maxVideosDisplayed)
+          .map(video => {
+            const channelId = video.snippet?.channelId
+            const channel = channelMap[channelId || '']
+            return (
+              <VideoCard
+                key={video.id}
+                thumbnailDetails={video.snippet?.thumbnails}
+                video={video}
+                channel={channel}
+              />
+            )
+          })
       )}
     </div>
   )

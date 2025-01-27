@@ -1,9 +1,13 @@
-export default function LoadingSpinner() {
+export default function LoadingSpinner({
+  spinnerStyles = 'fill-blue-600',
+}: {
+  spinnerStyles?: string
+}) {
   return (
-    <div role='status'>
+    <div role='status' className={spinnerStyles}>
       <svg
         aria-hidden='true'
-        className='w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600'
+        className='w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-inherit'
         viewBox='0 0 100 101'
         fill='none'
         xmlns='http://www.w3.org/2000/svg'

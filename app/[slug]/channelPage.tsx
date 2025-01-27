@@ -13,8 +13,7 @@ export default function ChannelPage({
 }: {
   channelHandle: string
 }) {
-  const { gapiIsInitialised, gapiRequestCount, setGapiRequestCount } =
-    useContext(GapiContext)
+  const { gapiIsInitialised, incGapiRequestCount } = useContext(GapiContext)
   const [channel, setChannel] = useState<gapi.client.youtube.Channel | null>(
     null,
   )
@@ -26,11 +25,10 @@ export default function ChannelPage({
   const parsedChannelHandle = stripLeadingAt(decodeURIComponent(channelHandle))
 
   function sendRequest(handle?: string) {
-    if (gapiRequestCount > 5) {
+    if (!incGapiRequestCount()) {
       console.log('max requests reached')
       return
     }
-    setGapiRequestCount(gapiRequestCount + 1)
 
     console.log(`requesting for channel: ${handle || parsedChannelHandle}`)
     gapi.client.youtube.channels
