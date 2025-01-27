@@ -76,9 +76,7 @@ export function sendVideoStatsRequest(
     id: videoIds.join(),
   })
 
-  videoListRequest.execute(function (
-    response: gapi.client.Response<gapi.client.youtube.VideoListResponse>,
-  ) {
+  videoListRequest.then(response => {
     const videoList = response.result
     setVideoResults(videoList.items || [])
   })
@@ -92,12 +90,48 @@ export function sendChannelListRequest(
     part: 'snippet',
     id: channelIds.join(),
   })
-  channelListRequest.execute(function (
-    response: gapi.client.Response<gapi.client.youtube.ChannelListResponse>,
-  ) {
+  channelListRequest.then(response => {
     const channelList = response.result
     setChannelResults(channelList.items || [])
   })
+}
+
+export function sendSearchListRequest(
+  queryString: string,
+  setSearchResults: Dispatch<
+    SetStateAction<gapi.client.youtube.SearchResult[]>
+  >,
+) {
+  const searchListRequest = gapi.client.youtube.search.list({
+    part: 'snippet',
+    q: queryString,
+    maxResults: 10,
+  })
+
+  searchListRequest.then(response => {
+    const searchList = response.result
+    setSearchResults(searchList.items || [])
+  })
+}
+
+export function sendPlaylistListRequest(
+  setPlaylists: Dispatch<SetStateAction<gapi.client.youtube.Playlist[]>>,
+) {
+  const baseParams = {
+    part: 'snippet,contentDetails',
+    mine: true,
+  }
+  gapi.client.youtube.playlists
+    .list(baseParams)
+    .then(playlistListResponse =>
+      handleNextPageResponses(
+        playlistListResponse,
+        gapi.client.youtube.playlists.list,
+        baseParams,
+        [] as gapi.client.youtube.Playlist[],
+      ),
+    )
+    .then(playlists => setPlaylists(playlists))
 }
 
 /**
@@ -181,28 +215,6 @@ export function fetchSubscriptionUploadsRequestPipeline(
   }
 }
 
-export function sendSearchListRequest(
-  queryString: string,
-  setSearchResults: Dispatch<
-    SetStateAction<gapi.client.youtube.SearchResult[]>
-  >,
-) {
-  const searchListRequest = gapi.client.youtube.search.list({
-    part: 'snippet',
-    q: queryString,
-    maxResults: 10,
-  })
-
-  searchListRequest.execute(function (
-    response: gapi.client.Response<gapi.client.youtube.SearchListResponse>,
-  ) {
-    const searchList = response.result
-    console.log('searchList:')
-    console.log(searchList)
-    setSearchResults(searchList.items || [])
-  })
-}
-
 export function fetchSubscribedChannels(
   setChannels: Dispatch<SetStateAction<gapi.client.youtube.Channel[]>>,
 ) {
@@ -213,14 +225,11 @@ export function fetchSubscribedChannels(
   gapi.client.youtube.subscriptions
     .list(subscriptionBaseParams)
     .then(response =>
-      handleNextPageResponses<
-        gapi.client.youtube.SubscriptionListResponse,
-        gapi.client.youtube.Subscription
-      >(
+      handleNextPageResponses(
         response,
         gapi.client.youtube.subscriptions.list,
         subscriptionBaseParams,
-        [],
+        [] as gapi.client.youtube.Subscription[],
       ),
     )
     .then(subscriptions => {
@@ -383,49 +392,11 @@ export function chooseThumbnail(
   }
 }
 
-// TODO: use handleNextPageResponses
-export function sendPlaylistListRequest(
-  setPlaylists: Dispatch<SetStateAction<gapi.client.youtube.Playlist[]>>,
-) {
-  const baseParams = {
-    part: 'snippet,contentDetails',
-    mine: true,
-  }
-  const playlistsRequest = gapi.client.youtube.playlists.list(baseParams)
-
-  let allPlaylists: gapi.client.youtube.Playlist[] = []
-
-  function handlePlaylistResponse(
-    response: gapi.client.Response<gapi.client.youtube.PlaylistListResponse>,
-  ) {
-    const responseResult = response.result
-    const responseItems = responseResult.items
-
-    if (!responseItems) {
-      return
-    }
-
-    allPlaylists = allPlaylists.concat(responseItems)
-    const nextPageToken = responseResult.nextPageToken
-
-    if (nextPageToken) {
-      const nextPageParams = {
-        ...baseParams,
-        pageToken: nextPageToken,
-      }
-      const nextPageRequest = gapi.client.youtube.playlists.list(nextPageParams)
-      nextPageRequest.execute(handlePlaylistResponse)
-    } else {
-      setPlaylists(allPlaylists)
-    }
-  }
-
-  playlistsRequest.execute(handlePlaylistResponse)
-}
-
 type PaginatedResponse<R> = { items?: R[]; nextPageToken?: string }
 /**
- * Recursively flattens responses from gapi requests that paginate results
+ * Recursively flattens responses from gapi requests that paginate results.
+ *
+ * For type inference, either requires T and R to be explicitly specified, or `acc` to be casted to `R[]`.
  *
  * @param response Parameter of .then callback
  * @param gapiRequestFn gapi function to send request. e.g. gapi.client.youtube.playlists.list
@@ -439,7 +410,7 @@ export function handleNextPageResponses<T extends PaginatedResponse<R>, R>(
   baseParams: {
     part: string
   },
-  acc: R[] = [] as R[],
+  acc: R[] = [],
 ): Promise<R[]> | R[] {
   const responseResult = response.result
   const responseItems = responseResult.items
@@ -505,8 +476,7 @@ export function handlePlaylistItemsResponse(
   }
 }
 
-/*************************** YOUTUBE RELATED HELPERS ******************************/
-
+/*************************** TEXT RELATED HELPERS ******************************/
 export function scaleWidthAndHeight(factor: number) {
   return { height: 390 * factor, width: 640 * factor }
 }
@@ -567,7 +537,6 @@ function stringifyDateRelativelyFactory(lang = 'en') {
 export const stringifyDateRelatively = stringifyDateRelativelyFactory()
 
 /*************************** GENERIC HELPERS ******************************/
-
 export function mod(a: number, b: number) {
   return ((a % b) + b) % b
 }
