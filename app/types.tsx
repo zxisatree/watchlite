@@ -29,11 +29,14 @@ export type GapiContextType = {
   setGapiRequestCount: Dispatch<SetStateAction<number>>
 }
 
+export type FullSubscription = {
+  subscription: gapi.client.youtube.Subscription
+  channel: gapi.client.youtube.Channel
+}
+
 export type UserContextType = {
-  subscriptions: gapi.client.youtube.Subscription[]
-  setSubscriptions: Dispatch<SetStateAction<gapi.client.youtube.Subscription[]>>
-  subscribedChannels: gapi.client.youtube.Channel[]
-  setSubscribedChannels: Dispatch<SetStateAction<gapi.client.youtube.Channel[]>>
+  subscriptions: FullSubscription[]
+  setSubscriptions: Dispatch<SetStateAction<FullSubscription[]>>
   playlists: gapi.client.youtube.Playlist[]
   setPlaylists: Dispatch<SetStateAction<gapi.client.youtube.Playlist[]>>
 }

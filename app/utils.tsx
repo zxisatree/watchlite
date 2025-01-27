@@ -6,7 +6,12 @@ import {
   useEffect,
   useRef,
 } from 'react'
-import { FullSearchResult, OauthTokenState, VideoListInfo } from './types'
+import {
+  FullSearchResult,
+  FullSubscription,
+  OauthTokenState,
+  VideoListInfo,
+} from './types'
 
 export function initGapi(
   apiKey: string,
@@ -217,8 +222,8 @@ export function fetchSubscriptionUploadsRequestPipeline(
   }
 }
 
-export function fetchSubscribedChannels(
-  setChannels: Dispatch<SetStateAction<gapi.client.youtube.Channel[]>>,
+export function fetchSubscriptions(
+  setSubscriptions: Dispatch<SetStateAction<FullSubscription[]>>,
 ) {
   const subscriptionBaseParams = {
     part: 'contentDetails,snippet',
@@ -234,10 +239,10 @@ export function fetchSubscribedChannels(
         [] as gapi.client.youtube.Subscription[],
       ),
     )
-    .then(subscriptions => {
-      const result = []
+    .then(async subscriptions => {
+      const channelRequests = []
       for (let i = 0; i < subscriptions.length; i += 50) {
-        result.push(
+        channelRequests.push(
           gapi.client.youtube.channels.list({
             part: 'snippet',
             id: subscriptions
@@ -247,13 +252,34 @@ export function fetchSubscribedChannels(
           }),
         )
       }
-      return Promise.all(result)
+      const channelResponses = await Promise.all(channelRequests)
+      return {
+        subscriptions,
+        channelResponses,
+      }
     })
-    .then(channelResponses => {
-      setChannels(
-        channelResponses.flatMap(
-          channelResponse => channelResponse.result.items || [],
-        ),
+    .then(fullResponses => {
+      const subscriptions = fullResponses.subscriptions
+      const channels = fullResponses.channelResponses.flatMap(
+        response => response.result.items || [],
+      )
+      // Join on channel ID
+      const channelMap = channels.reduce(
+        (acc: Record<string, gapi.client.youtube.Channel>, channel) => {
+          if (channel.id) {
+            acc[channel.id] = channel
+          }
+          return acc
+        },
+        {},
+      )
+      setSubscriptions(
+        subscriptions.map(subscription => ({
+          subscription,
+          // TODO: assert that channel must exist
+          channel:
+            channelMap[subscription.snippet?.resourceId?.channelId || ''],
+        })),
       )
     })
 }

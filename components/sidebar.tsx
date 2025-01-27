@@ -11,6 +11,28 @@ import { useSearchParams } from 'next/navigation'
 import { useContext } from 'react'
 import { MdMenu } from 'react-icons/md'
 
+function SidebarLayoutWrapper({
+  isSidebarOpen,
+  children,
+}: {
+  isSidebarOpen: boolean
+  children: React.ReactNode
+}) {
+  if (!isSidebarOpen) {
+    return (
+      <div className='fixed top-0 left-0 z-50 h-screen w-64 overflow-y-auto transition-transform -translate-x-full'>
+        {children}
+      </div>
+    )
+  } else {
+    return (
+      <div className='fixed top-0 left-0 z-50 h-screen w-64 overflow-y-auto transition-transform'>
+        {children}
+      </div>
+    )
+  }
+}
+
 export default function Sidebar({
   isSidebarOpen,
   closeSidebar,
@@ -18,23 +40,20 @@ export default function Sidebar({
   isSidebarOpen: boolean
   closeSidebar: () => void
 }) {
-  const { playlists } = useContext(UserContext)
+  const { subscriptions, playlists } = useContext(UserContext)
   const searchParams = useSearchParams()
   const chosenPlaylistId = searchParams.get('playlistId')
 
-  if (!isSidebarOpen) {
-    return (
-      <div className='fixed top-0 left-0 z-50 h-screen w-screen overflow-y-auto transition-transform -translate-x-full'></div>
-    )
-  } else {
-    // TODO: make backdrop appear instead of sliding in, and make sidebar fade out
-    return (
-      <div className='fixed top-0 left-0 z-50 h-screen w-screen overflow-y-auto transition-transform'>
-        {/* Blurred backdrop */}
+  return (
+    <>
+      {/* Blurred backdrop */}
+      {isSidebarOpen && (
         <div
-          className='fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40'
+          className='fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40 transition-opacity'
           onClick={closeSidebar}
-        ></div>
+        />
+      )}
+      <SidebarLayoutWrapper isSidebarOpen={isSidebarOpen}>
         <div className='relative h-screen w-64 z-50 overflow-y-auto bg-gray-400'>
           <div className='flex space-x-2 pt-10 pl-10 pb-5'>
             <button onClick={closeSidebar}>
@@ -44,7 +63,8 @@ export default function Sidebar({
               WatchLite
             </Link>
           </div>
-          <div className='flex flex-col pt-4 px-4 border-t border-gray-500 space-y-1'>
+          <div className='flex flex-col pt-4 px-4 border-t border-gray-500 space-y-1 font-semibold'>
+            Playlists
             {playlists.map(playlist => {
               const tileIdx = mod(
                 murmurHash(playlist.id || ''),
@@ -71,8 +91,23 @@ export default function Sidebar({
               )
             })}
           </div>
+          <div className='flex flex-col mt-4 pt-2 px-4 border-t border-gray-500 space-y-1 font-semibold'>
+            Subscriptions
+            {subscriptions.map(fullSubscription => {
+              return (
+                <Link
+                  key={fullSubscription.subscription.id}
+                  href={`/${fullSubscription.channel.snippet?.customUrl}`}
+                  className='h-8 rounded-lg p-1 pl-2 bg-gray-300 hover:bg-gray-500 transition-colors'
+                  onClick={closeSidebar}
+                >
+                  {fullSubscription.subscription.snippet?.title}
+                </Link>
+              )
+            })}
+          </div>
         </div>
-      </div>
-    )
-  }
+      </SidebarLayoutWrapper>
+    </>
+  )
 }

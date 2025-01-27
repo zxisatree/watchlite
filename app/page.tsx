@@ -24,15 +24,16 @@ export default function Page() {
   const chosenPlaylistId = searchParams.get('playlistId')
   const { gapiIsInitialised, gapiRequestCount, setGapiRequestCount } =
     useContext(GapiContext)
-  const { subscribedChannels, playlists } = useContext(UserContext)
+  const { subscriptions, playlists } = useContext(UserContext)
   const [isPlaylistLoading, setIsPlaylistLoading] = useState(false)
   const [playlistVideoListInfo, setPlaylistVideoListInfo] =
     useState<VideoListInfo>({ videos: [], channels: {} })
   console.log('playlistVideoListInfo:')
   console.log(playlistVideoListInfo)
 
-  const channelMap = subscribedChannels.reduce(
-    (acc: Record<string, gapi.client.youtube.Channel>, channel) => {
+  const channelMap = subscriptions.reduce(
+    (acc: Record<string, gapi.client.youtube.Channel>, subscription) => {
+      const channel = subscription.channel
       // if (channel.id && channel.id in acc) {
       //   console.log(
       //     `subscriptions duplicate key channel: ${channel.snippet?.title}`,
@@ -87,11 +88,11 @@ export default function Page() {
     }
     setGapiRequestCount(gapiRequestCount + 1)
 
-    if (!chosenPlaylistId && subscribedChannels) {
+    if (!chosenPlaylistId && subscriptions) {
       // get subscription videos
       setIsPlaylistLoading(true)
       fetchSubscriptionUploadsRequestPipeline(
-        subscribedChannels.map(channel => channel.id || ''),
+        subscriptions.map(subscription => subscription.channel.id || ''),
         setPlaylistVideoListInfo,
         setIsPlaylistLoading,
       )
@@ -108,13 +109,13 @@ export default function Page() {
     gapiIsInitialised,
     chosenPlaylistId,
     chosenPlaylistId && playlistMap[chosenPlaylistId],
-    subscribedChannels,
+    subscriptions,
   ])
 
   return (
     <div className='flex flex-col justify-center items-center'>
       <SubscriptionSummaryList
-        channels={subscribedChannels}
+        channels={subscriptions.map(subscription => subscription.channel)}
         channelMap={channelMap}
       />
       <div className='grid grid-cols-5 gap-2'>
