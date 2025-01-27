@@ -7,7 +7,7 @@ import { refreshOauthToken } from '@/app/utils'
 import { blueButton, yellowButton } from '@/app/tailwindStyles'
 import { MdMenu, MdSearch } from 'react-icons/md'
 import { randomBytes } from 'crypto'
-import { csrfStateKey } from '@/app/constants'
+import { baseUrl, csrfStateKey } from '@/app/constants'
 import Link from 'next/link'
 import { IconContext } from 'react-icons'
 import { IoMdCheckmarkCircle, IoMdCloseCircle } from 'react-icons/io'
@@ -37,7 +37,7 @@ export default function Header({
     const state = randomBytes(16).toString('hex')
     localStorage.setItem(csrfStateKey, state)
     const client_id = GAPI_CLIENT_ID
-    const callback_link = 'http://localhost:3000/oauth2callback'
+    const callback_link = `${baseUrl}/oauth2callback`
     const link = new URL('https://accounts.google.com/o/oauth2/auth')
     const params = new URLSearchParams({
       state: state,

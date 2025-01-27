@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useContext, useEffect } from 'react'
 import { GapiContext } from '../gapiCtxt'
 import { OauthTokenState } from '../types'
-import { csrfStateKey } from '../constants'
+import { baseUrl, csrfStateKey } from '../constants'
 
 export default function OauthCallbackPage() {
   const router = useRouter()
@@ -16,7 +16,7 @@ export default function OauthCallbackPage() {
     code: searchParams.get('code') || '',
     client_id: GAPI_CLIENT_ID,
     client_secret: GAPI_CLIENT_SECRET,
-    redirect_uri: 'http://localhost:3000/oauth2callback',
+    redirect_uri: `${baseUrl}/oauth2callback`,
     grant_type: 'authorization_code',
     scope: '',
     // access_type: 'offline',
