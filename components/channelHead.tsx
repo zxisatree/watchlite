@@ -8,8 +8,11 @@ export default function ChannelHead({
 }: {
   channel: gapi.client.youtube.Channel
 }) {
-  // TODO: statistics might not exist
-  const subscriberCount = channel.statistics!.subscriberCount!
+  if (!channel.statistics?.subscriberCount) {
+    console.error(`channel ${channel.snippet?.title} has no subscriberCount`)
+  }
+
+  const subscriberCount = channel.statistics?.subscriberCount || '0'
   return (
     <div className='flex space-x-4 my-4'>
       <CircularImage

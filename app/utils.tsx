@@ -284,7 +284,6 @@ export function fetchSubscriptions(
       setSubscriptions(
         subscriptions.map(subscription => ({
           subscription,
-          // TODO: assert that channel must exist
           channel:
             channelMap[subscription.snippet?.resourceId?.channelId || ''],
         })),
@@ -428,11 +427,9 @@ export function chooseThumbnail(
   }
 }
 
-type PaginatedResponse<R> = { items?: R[]; nextPageToken?: string }
+type PaginatedResponse<T> = { items?: T[]; nextPageToken?: string }
 /**
  * Recursively flattens responses from gapi requests that paginate results.
- *
- * For type inference, either requires T and R to be explicitly specified, or `acc` to be casted to `R[]`.
  *
  * @param response Parameter of .then callback
  * @param gapiRequestFn gapi function to send request. e.g. gapi.client.youtube.playlists.list
@@ -440,14 +437,16 @@ type PaginatedResponse<R> = { items?: R[]; nextPageToken?: string }
  * @param acc Accumulator array for results
  * @returns Array of results
  */
-export function handleNextPageResponses<T extends PaginatedResponse<R>, R>(
-  response: gapi.client.Response<T>,
-  gapiRequestFn: (params: typeof baseParams) => gapi.client.Request<T>,
+export function handleNextPageResponses<T>(
+  response: gapi.client.Response<PaginatedResponse<T>>,
+  gapiRequestFn: (
+    params: typeof baseParams,
+  ) => gapi.client.Request<PaginatedResponse<T>>,
   baseParams: {
     part: string
   },
-  acc: R[] = [],
-): Promise<R[]> | R[] {
+  acc: T[] = [],
+): Promise<T[]> | T[] {
   const responseResult = response.result
   const responseItems = responseResult.items
 
@@ -461,14 +460,13 @@ export function handleNextPageResponses<T extends PaginatedResponse<R>, R>(
       ...baseParams,
       pageToken: nextPageToken,
     }
-    return gapiRequestFn(nextPageParams).then(
-      (response: gapi.client.Response<T>) =>
-        handleNextPageResponses(
-          response,
-          gapiRequestFn,
-          baseParams,
-          acc.concat(responseItems),
-        ),
+    return gapiRequestFn(nextPageParams).then(response =>
+      handleNextPageResponses(
+        response,
+        gapiRequestFn,
+        baseParams,
+        acc.concat(responseItems),
+      ),
     )
   } else {
     return acc.concat(responseItems)

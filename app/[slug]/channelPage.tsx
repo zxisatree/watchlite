@@ -74,8 +74,7 @@ export default function ChannelPage({
         }
         console.log('playlist items:')
         console.log(playlistItems)
-        // TODO: fix handleNextPageResponses inferring unknown[]
-        const videoIds = (playlistItems as gapi.client.youtube.PlaylistItem[])
+        const videoIds = playlistItems
           .map(item => item.snippet?.resourceId?.videoId)
           .filter(isNotUndefined)
         const result = []
