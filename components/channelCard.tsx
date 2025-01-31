@@ -8,7 +8,6 @@ export default function ChannelCard({
 }: {
   channel: gapi.client.youtube.Channel
 }) {
-  // TODO: move to ChannelCard
   const snippet = channel.snippet
   const statistics = channel.statistics
   const subscriberCount = statistics?.subscriberCount

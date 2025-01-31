@@ -13,7 +13,6 @@ export default function PlaylistCard({
   channel: gapi.client.youtube.Channel
   playlistItemInfos: PlaylistItemInfo[]
 }) {
-  // TODO: check that first video exists
   const firstItem = playlistItemInfos[0]
   const firstPlaylistItem = firstItem.playlistItem
   const videoId = firstPlaylistItem.contentDetails?.videoId
@@ -73,7 +72,6 @@ export default function PlaylistCard({
               <Link
                 key={playlistItem.id}
                 href={`/watch?v=${playlistItem.contentDetails?.videoId}&link=${playlistId}`}
-                // TODO: cut off text if too long
                 className='text-gray-500 hover:text-gray-800'
               >
                 {playlistItem.snippet?.title} &bull;

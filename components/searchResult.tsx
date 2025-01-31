@@ -3,35 +3,35 @@ import VideoCard from './videoCard'
 import ResultCard from './resultCard'
 import PlaylistCard from './playlistCard'
 import ChannelCard from './channelCard'
+import {
+  isChannelSearchResult,
+  isPlaylistSearchResult,
+  isVideoSearchResult,
+} from '@/app/utils'
 
 export default function SearchResult({
-  fullResult,
+  searchResult,
 }: {
-  fullResult: FullSearchResult
+  searchResult: FullSearchResult
 }) {
-  const video = fullResult.video
-  const channel = fullResult.channel
-  const playlistItemInfos = fullResult.playlistItemInfos
-
-  if (video) {
+  if (isVideoSearchResult(searchResult)) {
     return (
       <VideoCard
-        video={video}
-        channel={channel}
-        thumbnailDetails={fullResult.video?.snippet?.thumbnails}
+        video={searchResult.video}
+        channel={searchResult.channel}
+        thumbnailDetails={searchResult.video.snippet?.thumbnails}
       />
     )
-  } else if (playlistItemInfos) {
-    // TODO: check that search result and channel always exists
+  } else if (isPlaylistSearchResult(searchResult)) {
     return (
       <PlaylistCard
-        searchResult={fullResult.searchResult!}
-        channel={channel!}
-        playlistItemInfos={playlistItemInfos}
+        searchResult={searchResult.searchResult}
+        channel={searchResult.channel}
+        playlistItemInfos={searchResult.playlistItemInfos}
       />
     )
-  } else if (channel) {
-    return <ChannelCard channel={channel} />
+  } else if (isChannelSearchResult(searchResult)) {
+    return <ChannelCard channel={searchResult.channel} />
   } else {
     return (
       <ResultCard>

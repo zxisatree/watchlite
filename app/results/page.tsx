@@ -2,6 +2,7 @@
 
 import { useContext, useEffect, useState } from 'react'
 import {
+  isNotNull,
   isNotUndefined,
   keySearchResultById,
   sendChannelListRequest,
@@ -89,25 +90,38 @@ export default function SearchPage() {
       }
 
       setFullResults(
-        searchResults.map(searchResult => {
-          const searchResultVideoId = searchResult.id?.videoId
-          const searchResultChannelId = searchResult.snippet?.channelId
-          const searchResultPlaylistId = searchResult.id?.playlistId
-          const result: FullSearchResult = { searchResult }
-          if (videoIdToResult.has(searchResultVideoId)) {
-            result.video = videoIdToResult.get(searchResultVideoId)
-          }
-          if (channelIdToResult.has(searchResultChannelId)) {
-            result.channel = channelIdToResult.get(searchResultChannelId)
-          }
-          if (playlistIdToResult.has(searchResultPlaylistId)) {
-            result.playlistItemInfos = playlistIdToResult.get(
-              searchResultPlaylistId,
-            )
-          }
+        searchResults
+          .map(searchResult => {
+            const searchResultVideoId = searchResult.id?.videoId
+            const searchResultChannelId = searchResult.snippet?.channelId
+            const searchResultPlaylistId = searchResult.id?.playlistId
+            const hasVideo = videoIdToResult.has(searchResultVideoId)
+            const hasChannel = channelIdToResult.has(searchResultChannelId)
+            const hasPlaylist = playlistIdToResult.has(searchResultPlaylistId)
 
-          return result
-        }),
+            if (hasVideo && hasChannel) {
+              return {
+                video: videoIdToResult.get(searchResultVideoId),
+                channel: channelIdToResult.get(searchResultChannelId),
+              }
+            } else if (hasChannel && !hasPlaylist) {
+              return {
+                channel: channelIdToResult.get(searchResultChannelId),
+              }
+            } else if (hasPlaylist) {
+              return {
+                searchResult,
+                channel: channelIdToResult.get(searchResultChannelId),
+                playlistItemInfos: playlistIdToResult.get(
+                  searchResultPlaylistId,
+                ),
+              }
+            } else {
+              console.error('invalid search result')
+              return null
+            }
+          })
+          .filter(isNotNull),
       )
     }
   }, [
@@ -130,7 +144,7 @@ export default function SearchPage() {
   return (
     <div className='flex flex-col justify-center items-center mt-2'>
       {fullResults?.map(result => (
-        <SearchResult key={keySearchResultById(result)} fullResult={result} />
+        <SearchResult key={keySearchResultById(result)} searchResult={result} />
       ))}
     </div>
   )

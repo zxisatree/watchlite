@@ -175,7 +175,7 @@ export default function Page() {
           ? 'Loading...'
           : chosenPlaylistId
           ? `${playlistMap[chosenPlaylistId]?.snippet?.title} videos (${videoCountString})`
-          : `Subscription videos (${videoCountString})`}
+          : `Videos from subscriptions (${videoCountString})`}
       </div>
       {isPlaylistLoading ? (
         <LoadingSpinner />

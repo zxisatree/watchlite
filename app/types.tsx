@@ -1,10 +1,23 @@
 import { Dispatch, SetStateAction } from 'react'
 
-export type FullSearchResult = {
-  searchResult?: gapi.client.youtube.SearchResult
-  video?: gapi.client.youtube.Video
-  channel?: gapi.client.youtube.Channel
-  playlistItemInfos?: PlaylistItemInfo[]
+export type FullSearchResult =
+  | VideoSearchResult
+  | ChannelSearchResult
+  | PlaylistSearchResult
+
+export type VideoSearchResult = {
+  video: gapi.client.youtube.Video
+  channel: gapi.client.youtube.Channel
+}
+
+export type ChannelSearchResult = {
+  channel: gapi.client.youtube.Channel
+}
+
+export type PlaylistSearchResult = {
+  searchResult: gapi.client.youtube.SearchResult
+  channel: gapi.client.youtube.Channel
+  playlistItemInfos: PlaylistItemInfo[]
 }
 
 export type PlaylistItemInfo = {

@@ -55,7 +55,6 @@ export default function ChannelPage({
           part: 'snippet',
           playlistId: channel.contentDetails?.relatedPlaylists?.uploads,
         }
-        // TODO: takes really long
         return gapi.client.youtube.playlistItems
           .list(baseParams)
           .then(response =>
@@ -63,6 +62,7 @@ export default function ChannelPage({
               response,
               gapi.client.youtube.playlistItems.list,
               baseParams,
+              50,
             ),
           )
       })
@@ -77,9 +77,7 @@ export default function ChannelPage({
           .map(item => item.snippet?.resourceId?.videoId)
           .filter(isNotUndefined)
         const result = []
-        // TODO: move to constants
-        const maxResultsRetrieved = Math.max(videoIds.length, 100)
-        for (let i = 0; i < maxResultsRetrieved; i += 50) {
+        for (let i = 0; i < videoIds.length; i += 50) {
           result.push(
             gapi.client.youtube.videos.list({
               part: 'snippet,contentDetails,statistics',

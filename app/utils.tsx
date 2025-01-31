@@ -7,11 +7,14 @@ import {
   useRef,
 } from 'react'
 import {
+  ChannelSearchResult,
   FullSearchResult,
   FullSubscription,
   OauthTokenState,
   PlaylistItemInfo,
+  PlaylistSearchResult,
   VideoListInfo,
+  VideoSearchResult,
 } from './types'
 
 export function initGapi(
@@ -192,7 +195,6 @@ export function sendPlaylistListMineRequest(
         playlistListResponse,
         gapi.client.youtube.playlists.list,
         baseParams,
-        [] as gapi.client.youtube.Playlist[],
       ),
     )
     .then(playlists => setPlaylists(playlists))
@@ -290,18 +292,17 @@ export function fetchSubscriptionUploadsRequestPipeline(
 export function fetchSubscriptions(
   setSubscriptions: Dispatch<SetStateAction<FullSubscription[]>>,
 ) {
-  const subscriptionBaseParams = {
-    part: 'contentDetails,snippet',
+  const baseParams = {
+    part: 'snippet,contentDetails',
     mine: true,
   }
   gapi.client.youtube.subscriptions
-    .list(subscriptionBaseParams)
+    .list(baseParams)
     .then(response =>
       handleNextPageResponses(
         response,
         gapi.client.youtube.subscriptions.list,
-        subscriptionBaseParams,
-        [] as gapi.client.youtube.Subscription[],
+        baseParams,
       ),
     )
     .then(async subscriptions => {
@@ -435,15 +436,36 @@ export function fetchPlaylistItems(
     })
 }
 
+export function isVideoSearchResult(
+  result: FullSearchResult,
+): result is VideoSearchResult {
+  return 'video' in result
+}
+
+export function isChannelSearchResult(
+  result: FullSearchResult,
+): result is ChannelSearchResult {
+  return 'channel' in result && !('playlistItemInfos' in result)
+}
+
+export function isPlaylistSearchResult(
+  result: FullSearchResult,
+): result is PlaylistSearchResult {
+  return 'playlistItemInfos' in result
+}
+
 // Will return empty string if result.is is null
 export function keySearchResultById(result: FullSearchResult): string {
-  return [
-    result.searchResult?.id?.channelId,
-    result.searchResult?.id?.playlistId,
-    result.searchResult?.id?.videoId,
-  ]
-    .filter(Boolean)
-    .join()
+  if (isVideoSearchResult(result)) {
+    return result.video.id!
+  } else if (isPlaylistSearchResult(result)) {
+    return result.searchResult.id!.playlistId!
+  } else if (isChannelSearchResult(result)) {
+    return result.channel.id!
+  }
+
+  // Should never reach here
+  return ''
 }
 
 const thumbnailResolutions: (keyof gapi.client.youtube.ThumbnailDetails)[] = [
@@ -492,6 +514,7 @@ type PaginatedResponse<T> = { items?: T[]; nextPageToken?: string }
  * @param gapiRequestFn gapi function to send request. e.g. gapi.client.youtube.playlists.list
  * @param baseParams Parameters to send to gapiRequestFn
  * @param acc Accumulator array for results
+ * @param maxResults Maximum number of results to retrieve
  * @returns Array of results
  */
 export function handleNextPageResponses<T>(
@@ -502,12 +525,13 @@ export function handleNextPageResponses<T>(
   baseParams: {
     part: string
   },
+  maxResults?: number,
   acc: T[] = [],
 ): Promise<T[]> | T[] {
   const responseResult = response.result
   const responseItems = responseResult.items
 
-  if (!responseItems) {
+  if (!responseItems || (maxResults && acc.length >= maxResults)) {
     return acc
   }
 
@@ -522,6 +546,7 @@ export function handleNextPageResponses<T>(
         response,
         gapiRequestFn,
         baseParams,
+        maxResults,
         acc.concat(responseItems),
       ),
     )
@@ -703,6 +728,10 @@ export function binaryInsert<T, U>(
 
 export function isNotUndefined<T>(s: T | undefined): s is T {
   return !!s
+}
+
+export function isNotNull<T>(s: T | null): s is T {
+  return s !== null
 }
 
 /*************************** REACT HELPERS ******************************/
