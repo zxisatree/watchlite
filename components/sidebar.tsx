@@ -85,7 +85,7 @@ export default function Sidebar({
                         : colouredSidebarPlaylistButtons[tileIdx]
                     }
                   >
-                    {playlist.snippet?.title}
+                    <div className='p-1 pl-2'>{playlist.snippet?.title}</div>
                   </div>
                 </Link>
               )

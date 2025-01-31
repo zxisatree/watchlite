@@ -165,7 +165,7 @@ export default function Page() {
                 router.push(`/?playlistId=${playlist.id}`)
               }}
             >
-              {playlist.snippet?.title}
+              <div className='p-2'>{playlist.snippet?.title}</div>
             </button>
           )
         })}
