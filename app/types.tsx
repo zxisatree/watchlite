@@ -4,7 +4,12 @@ export type FullSearchResult = {
   searchResult?: gapi.client.youtube.SearchResult
   video?: gapi.client.youtube.Video
   channel?: gapi.client.youtube.Channel
-  playlist?: gapi.client.youtube.Playlist
+  playlistItemInfos?: PlaylistItemInfo[]
+}
+
+export type PlaylistItemInfo = {
+  playlistItem: gapi.client.youtube.PlaylistItem
+  video: gapi.client.youtube.Video
 }
 
 export type SubscriptionApiResult = {

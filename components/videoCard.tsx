@@ -16,8 +16,12 @@ export default function VideoCard({
   channel,
 }: VideoCardProps) {
   const defaultVideoThumbnail = thumbnailDetails?.high
-  const defaultChannelThumbnail = thumbnailDetails?.default
   const defaultUrl = defaultVideoThumbnail?.url
+
+  // console.log('video title: ', video.snippet?.title)
+  // console.log('channel:')
+  // console.log(channel)
+
   // height is usually 360, width is usually 480
   return (
     <ResultCard>
@@ -50,7 +54,10 @@ export default function VideoCard({
           >
             <Image
               className='rounded-full aspect-square object-cover'
-              src={defaultChannelThumbnail?.url || '/default_thumbnail.png'}
+              src={
+                channel?.snippet?.thumbnails?.default?.url ||
+                '/default_thumbnail.png'
+              }
               alt={`${channel.snippet?.title} thumbnail`}
               width={24}
               height={24}

@@ -10,6 +10,7 @@ import {
   FullSearchResult,
   FullSubscription,
   OauthTokenState,
+  PlaylistItemInfo,
   VideoListInfo,
 } from './types'
 
@@ -74,7 +75,7 @@ export function refreshOauthToken(
     })
 }
 
-export function sendVideoStatsRequest(
+export function sendVideoListRequest(
   videoIds: string[],
   setVideoResults: Dispatch<SetStateAction<gapi.client.youtube.Video[]>>,
 ) {
@@ -117,11 +118,67 @@ export function sendSearchListRequest(
 
   searchListRequest.then(response => {
     const searchList = response.result
+    console.log(searchList)
     setSearchResults(searchList.items || [])
   })
 }
 
-export function sendPlaylistListRequest(
+export function sendPlaylistItemsListRequest(
+  playlistIds: string[],
+  setPlaylistItemInfos: Dispatch<
+    SetStateAction<Map<string, PlaylistItemInfo[]>>
+  >,
+) {
+  // for each playlist, list playlist items, then get videos for each playlist item
+  Promise.all(
+    playlistIds.map(playlistId =>
+      gapi.client.youtube.playlistItems
+        .list({
+          part: 'snippet,contentDetails',
+          playlistId,
+        })
+        .then(async playlistItemsResponse => {
+          const playlistItems = playlistItemsResponse.result.items
+          const videosResponse = await gapi.client.youtube.videos.list({
+            part: 'contentDetails',
+            id: playlistItems
+              ?.map(playlistItem => playlistItem.snippet?.resourceId?.videoId)
+              .join(),
+          })
+          return {
+            playlistItems: playlistItems || [],
+            videos: videosResponse.result.items || [],
+          }
+        }),
+    ),
+  ).then(playlistData => {
+    setPlaylistItemInfos(prevInfo => {
+      const newInfo = new Map(prevInfo)
+      for (let i = 0; i < playlistData.length; i++) {
+        const playlistInfo = playlistData[i]
+        if (playlistInfo.videos.length !== playlistInfo.playlistItems.length) {
+          console.error(
+            `playlistInfo.videos.length !== playlistInfo.playlistItems.length: ${playlistInfo.videos.length} !== ${playlistInfo.playlistItems.length}`,
+          )
+          return prevInfo
+        }
+
+        newInfo.set(
+          playlistIds[i],
+          (newInfo.get(playlistIds[i]) || []).concat(
+            playlistInfo.videos.map((video, index) => ({
+              playlistItem: playlistInfo.playlistItems[index],
+              video: video,
+            })),
+          ),
+        )
+      }
+      return newInfo
+    })
+  })
+}
+
+export function sendPlaylistListMineRequest(
   setPlaylists: Dispatch<SetStateAction<gapi.client.youtube.Playlist[]>>,
 ) {
   const baseParams = {
@@ -569,6 +626,18 @@ function stringifyDateRelativelyFactory(lang = 'en') {
 }
 
 export const stringifyDateRelatively = stringifyDateRelativelyFactory()
+
+/** Only parses strings that start with PT (i.e. no date designators) */
+export function parse8601PtTime(input: string): string {
+  const match = input.match(/PT(\d+H)?(\d+M)?(\d+S)?/)
+  if (!match) {
+    return 'Input is not a valid ISO 8601 duration'
+  }
+  const [, hours, minutes, seconds] = match
+  return `${hours ? hours.slice(0, -1) + ':' : ''}${
+    minutes ? minutes.slice(0, -1) + ':' : ''
+  }${seconds ? seconds.slice(0, -1).padStart(2, '0') : ''}`
+}
 
 /*************************** GENERIC HELPERS ******************************/
 export function mod(a: number, b: number) {

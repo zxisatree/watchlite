@@ -1,5 +1,5 @@
 'use client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Form from 'next/form'
 import { GapiContext } from '../app/gapiCtxt'
 import { useContext } from 'react'
@@ -18,6 +18,8 @@ export default function Header({
   toggleSidebar: () => void
 }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const query = searchParams.get('search_query')
   const {
     GAPI_CLIENT_ID,
     GAPI_CLIENT_SECRET,
@@ -101,6 +103,7 @@ export default function Header({
           name='search_query'
           className='bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 focus:placeholder-transparent'
           placeholder='Search...'
+          defaultValue={query || ''}
         />
         <button type='submit' className='h-6'>
           <MdSearch size={24} />
