@@ -1,6 +1,12 @@
 'use client'
 
-import { createContext, useEffect, useState } from 'react'
+import {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useState,
+} from 'react'
 import { GapiContextType, OauthTokenState } from './types'
 import { initGapi } from './utils'
 import { gapiRequestLimit } from './constants'
@@ -29,6 +35,25 @@ export const GapiContext = createContext<GapiContextType>({
   incGapiRequestCount: () => false,
 })
 
+function initGapiFromCtxt(
+  envVars: GapiCtxtWrapperProps['envVars'],
+  setGapiIsInitialised: Dispatch<SetStateAction<boolean>>,
+) {
+  initGapi(envVars.GAPI_API_KEY, envVars.GAPI_CLIENT_ID, setGapiIsInitialised)
+}
+
+/** Returns false if too many requests have been sent */
+function incGapiRequestCount(
+  gapiRequestCount: number,
+  setGapiRequestCount: Dispatch<SetStateAction<number>>,
+) {
+  if (gapiRequestCount > gapiRequestLimit) {
+    return false
+  }
+  setGapiRequestCount(gapiRequestCount + 1)
+  return true
+}
+
 /** Provides environment variables and global state. Also handles OAuth token parsing from localStorage */
 export default function GapiCtxt({
   envVars,
@@ -45,19 +70,6 @@ export default function GapiCtxt({
     !oauthToken.expiry_date ||
     new Date() >= oauthToken.expiry_date
   )
-
-  function initGapiFromCtxt() {
-    initGapi(envVars.GAPI_API_KEY, envVars.GAPI_CLIENT_ID, setGapiIsInitialised)
-  }
-
-  /** Returns false if too many requests have been sent */
-  function incGapiRequestCount() {
-    if (gapiRequestCount > gapiRequestLimit) {
-      return false
-    }
-    setGapiRequestCount(gapiRequestCount + 1)
-    return true
-  }
 
   useEffect(() => {
     if (gapiIsInitialised) {
@@ -85,13 +97,14 @@ export default function GapiCtxt({
       value={{
         ...envVars,
         gapiIsInitialised,
-        initGapiFromCtxt,
+        initGapiFromCtxt: () => initGapiFromCtxt(envVars, setGapiIsInitialised),
         oauthToken,
         setOauthToken,
         isOauthTokenLoading,
         setIsOauthTokenLoading,
         isOauthTokenValid,
-        incGapiRequestCount,
+        incGapiRequestCount: () =>
+          incGapiRequestCount(gapiRequestCount, setGapiRequestCount),
       }}
     >
       {children}

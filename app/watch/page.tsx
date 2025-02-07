@@ -2,48 +2,38 @@
 import { useSearchParams } from 'next/navigation'
 import YouTube from 'react-youtube'
 import {
-  isNotUndefined,
+  fetchPlaylistItems,
+  loadComments,
   scaleWidthAndHeight,
   stringifyDateRelatively,
 } from '@/app/utils'
-import {
-  Dispatch,
-  SetStateAction,
-  useContext,
-  useEffect,
-  useState,
-} from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { GapiContext } from '../gapiCtxt'
-
-/** Limit to 50 comments for now */
-function loadComments(
-  videoId: string,
-  setComments: Dispatch<SetStateAction<gapi.client.youtube.Comment[]>>,
-) {
-  gapi.client.youtube.commentThreads
-    .list({
-      part: 'snippet',
-      videoId: videoId,
-    })
-    .then(response => {
-      const comments = response.result?.items
-        ?.map(item => item.snippet?.topLevelComment)
-        .filter(isNotUndefined)
-      if (comments) {
-        setComments(comments)
-      }
-    })
-}
+import { VideoListInfo } from '../types'
+import Link from 'next/link'
+import LoadingSpinner from '@/components/loadingSpinner'
 
 export default function Play() {
   const { gapiIsInitialised } = useContext(GapiContext)
   const searchParams = useSearchParams()
   const videoId = searchParams.get('v') || ''
+  const playlistId = searchParams.get('list') || ''
   const [video, setVideo] = useState<gapi.client.youtube.VideoSnippet | null>(
     null,
   )
+  const [channel, setChannel] =
+    useState<gapi.client.youtube.ChannelSnippet | null>(null)
   const [comments, setComments] = useState<gapi.client.youtube.Comment[]>([])
-  console.log(video)
+  const [playlistSnippet, setPlaylistSnippet] =
+    useState<gapi.client.youtube.PlaylistSnippet | null>(null)
+  const [playlist, setPlaylist] = useState<VideoListInfo>({
+    videos: [],
+    channels: {},
+  })
+  const [isPlaylistLoading, setIsPlaylistLoading] = useState(false)
+
+  // console.log(playlist)
+  // console.log(video)
 
   useEffect(() => {
     if (gapiIsInitialised && videoId !== '') {
@@ -57,9 +47,37 @@ export default function Play() {
           if (video) {
             setVideo(video)
           }
+
+          gapi.client.youtube.channels
+            .list({
+              part: 'snippet',
+              id: video?.channelId,
+            })
+            .then(response => {
+              const channel = response.result?.items?.[0]?.snippet
+              if (channel) {
+                setChannel(channel)
+              }
+            })
         })
+
+      if (playlistId) {
+        setIsPlaylistLoading(true)
+        fetchPlaylistItems(playlistId, setPlaylist, setIsPlaylistLoading)
+        gapi.client.youtube.playlists
+          .list({
+            part: 'snippet',
+            id: playlistId,
+          })
+          .then(response => {
+            const playlist = response.result?.items?.[0]?.snippet
+            if (playlist) {
+              setPlaylistSnippet(playlist)
+            }
+          })
+      }
     }
-  }, [gapiIsInitialised, videoId])
+  }, [gapiIsInitialised, videoId, playlistId])
 
   if (!video) {
     return <div>Loading...</div>
@@ -68,14 +86,55 @@ export default function Play() {
   }
   return (
     <div className='w-full h-full flex flex-col justify-center items-center p-2 mb-10'>
-      <YouTube videoId={videoId} opts={scaleWidthAndHeight(2)} />
+      <div className='flex'>
+        <YouTube videoId={videoId} opts={scaleWidthAndHeight(2)} />
+        {playlistId && (
+          <div className='ml-6 p-2 rounded-lg bg-gray-600'>
+            {isPlaylistLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <>
+                <div className='text-xl font-bold text-gray-100'>
+                  {playlistSnippet?.title}
+                </div>
+                {playlist.videos.map(video => {
+                  let cardStyles
+                  if (video.id === videoId) {
+                    cardStyles =
+                      'p-1 my-1 flex flex-row bg-gray-300 border border-gray-400 rounded-lg hover:bg-gray-400 transition-colors'
+                  } else {
+                    cardStyles =
+                      'p-1 my-1 flex flex-row bg-gray-50 border border-gray-400 rounded-lg hover:bg-gray-400 transition-colors'
+                  }
+                  return (
+                    <Link
+                      className={cardStyles}
+                      href={`/watch?v=${video.id}&list=${playlistId}`}
+                      key={video.id}
+                    >
+                      {video.snippet?.title}
+                    </Link>
+                  )
+                })}
+              </>
+            )}
+          </div>
+        )}
+      </div>
       <div>
-        <h1 className='text-5xl font-bold'>{video.title}</h1>
-        <div className='text-2xl'>{video.channelTitle}</div>
-        <div className='text-xl'>
+        <h1 className='text-5xl font-bold my-2'>{video.title}</h1>
+        <Link
+          className='text-2xl text-gray-500 hover:text-gray-700'
+          href={`/${channel?.customUrl}`}
+        >
+          {video.channelTitle}
+        </Link>
+        <div className='text-xl pb-1 border-b border-black'>
           {stringifyDateRelatively(video.publishedAt || '')}
         </div>
-        <div className='text-lg'>{video.description}</div>
+        <div className='text-lg whitespace-pre-wrap overflow-hidden'>
+          {video.description}
+        </div>
         <div className='text-2xl my-4'>Comments</div>
         {comments.map(comment => (
           <div

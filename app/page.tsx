@@ -118,19 +118,12 @@ export default function Page() {
     if (playlistExists) {
       setIsPlaylistLoading(true)
       fetchPlaylistItems(
-        playlistMap[chosenPlaylistId],
+        playlistMap[chosenPlaylistId].id || '',
         setPlaylistVideoListInfo,
         setIsPlaylistLoading,
       )
     }
-  }, [
-    gapiIsInitialised,
-    incGapiRequestCount,
-    chosenPlaylistId,
-    playlistMap,
-    playlistExists,
-    subscriptions,
-  ])
+  }, [gapiIsInitialised, chosenPlaylistId, playlistExists, subscriptions])
 
   return isOauthTokenLoading ? (
     <div className='h-screen w-full flex items-center justify-center'>
@@ -195,6 +188,7 @@ export default function Page() {
                 // channel has to exist in map
                 deduplicatedVideoListInfo.channels[video.snippet!.channelId!]
               }
+              playlistId={chosenPlaylistId}
             />
           ))
       ) : (

@@ -17,7 +17,7 @@ export default function PlaylistCard({
   const firstPlaylistItem = firstItem.playlistItem
   const videoId = firstPlaylistItem.contentDetails?.videoId
   const playlistId = searchResult.id?.playlistId
-  const firstVideoUrl = `/watch?v=${videoId}&link=${playlistId}`
+  const firstVideoUrl = `/watch?v=${videoId}&list=${playlistId}`
 
   return (
     <ResultCard>
@@ -71,7 +71,7 @@ export default function PlaylistCard({
             return (
               <Link
                 key={playlistItem.id}
-                href={`/watch?v=${playlistItem.contentDetails?.videoId}&link=${playlistId}`}
+                href={`/watch?v=${playlistItem.contentDetails?.videoId}&list=${playlistId}`}
                 className='text-gray-500 hover:text-gray-800'
               >
                 {playlistItem.snippet?.title} &bull;

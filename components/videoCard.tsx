@@ -8,15 +8,18 @@ type VideoCardProps = {
   thumbnailDetails: gapi.client.youtube.ThumbnailDetails | undefined
   video: gapi.client.youtube.Video
   channel?: gapi.client.youtube.Channel
+  playlistId?: string
 }
 
 export default function VideoCard({
   thumbnailDetails,
   video,
   channel,
+  playlistId,
 }: VideoCardProps) {
   const defaultVideoThumbnail = thumbnailDetails?.high
   const defaultUrl = defaultVideoThumbnail?.url
+  const url = `/watch?v=${video.id}${playlistId ? `&list=${playlistId}` : ''}`
 
   // console.log('video title: ', video.snippet?.title)
   // console.log('channel:')
@@ -26,7 +29,7 @@ export default function VideoCard({
   return (
     <ResultCard>
       <Link
-        href={`/watch?v=${video.id}`}
+        href={url}
         className='w-[420px] h-[300px] flex-shrink-0 flex-grow-0 relative'
       >
         <Image
@@ -41,10 +44,7 @@ export default function VideoCard({
       </Link>
       {/* Unflex */}
       <div className='py-2 space-y-2'>
-        <Link
-          href={`/watch?v=${video.id}`}
-          className='mb-2 text-xl font-bold text-wrap'
-        >
+        <Link href={url} className='mb-2 text-xl font-bold text-wrap'>
           {video.snippet?.title || 'Title not found'}
         </Link>
         {channel && (
@@ -67,10 +67,7 @@ export default function VideoCard({
             </div>
           </Link>
         )}
-        <Link
-          href={`/watch?v=${video.id}`}
-          className='flex items-center space-x-2'
-        >
+        <Link href={url} className='flex items-center space-x-2'>
           <div className='flex text-gray-700 space-x-1'>
             <MdOutlineVisibility size={20} className='self-end' />
             <div className='text-center'>
@@ -94,7 +91,7 @@ export default function VideoCard({
             </div>
           </div>
         </Link>
-        <Link href={`/watch?v=${video.id}`}>
+        <Link href={url}>
           <div className='pr-8 text-gray-700 text-sm'>
             {video.snippet?.description?.substring(0, 200)}
             {video.snippet?.description?.length &&

@@ -399,13 +399,13 @@ export function fetchSubscriptions(
 }
 
 export function fetchPlaylistItems(
-  playlist: gapi.client.youtube.Playlist,
+  playlistId: string,
   setPlaylistVideoListInfo: React.Dispatch<React.SetStateAction<VideoListInfo>>,
   setIsPlaylistLoading: React.Dispatch<React.SetStateAction<boolean>>,
 ) {
   const baseParams = {
     part: 'snippet',
-    playlistId: playlist.id,
+    playlistId: playlistId,
   }
   gapi.client.youtube.playlistItems
     .list(baseParams)
@@ -482,6 +482,26 @@ export function fetchPlaylistItems(
         ),
       })
       setIsPlaylistLoading(false)
+    })
+}
+
+/** Limit to 50 comments for now */
+export function loadComments(
+  videoId: string,
+  setComments: Dispatch<SetStateAction<gapi.client.youtube.Comment[]>>,
+) {
+  gapi.client.youtube.commentThreads
+    .list({
+      part: 'snippet',
+      videoId: videoId,
+    })
+    .then(response => {
+      const comments = response.result?.items
+        ?.map(item => item.snippet?.topLevelComment)
+        .filter(isNotUndefined)
+      if (comments) {
+        setComments(comments)
+      }
     })
 }
 
