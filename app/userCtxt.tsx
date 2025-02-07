@@ -23,7 +23,7 @@ export default function UserCtxt({ children }: { children: React.ReactNode }) {
       sendPlaylistListMineRequest(setPlaylists)
       fetchSubscriptions(setSubscriptions)
     }
-  }, [gapiIsInitialised, oauthToken])
+  }, [gapiIsInitialised, oauthToken, isOauthTokenValid])
 
   return (
     <UserContext.Provider

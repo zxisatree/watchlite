@@ -57,7 +57,7 @@ export default function OauthCallbackPage() {
           router.push('/')
         })
     }
-  }, [])
+  })
 
   return (
     <div>

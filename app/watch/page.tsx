@@ -59,7 +59,7 @@ export default function Play() {
           }
         })
     }
-  }, [gapiIsInitialised])
+  }, [gapiIsInitialised, videoId])
 
   if (!video) {
     return <div>Loading...</div>

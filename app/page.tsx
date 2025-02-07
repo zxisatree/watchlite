@@ -91,6 +91,8 @@ export default function Page() {
       : ''
   }`
 
+  const playlistExists = chosenPlaylistId && playlistMap[chosenPlaylistId]
+
   // fetch playlist videos
   useEffect(() => {
     if (!gapiIsInitialised) {
@@ -113,7 +115,7 @@ export default function Page() {
         setIsPlaylistLoading,
       )
     }
-    if (chosenPlaylistId && playlistMap[chosenPlaylistId]) {
+    if (playlistExists) {
       setIsPlaylistLoading(true)
       fetchPlaylistItems(
         playlistMap[chosenPlaylistId],
@@ -123,8 +125,10 @@ export default function Page() {
     }
   }, [
     gapiIsInitialised,
+    incGapiRequestCount,
     chosenPlaylistId,
-    chosenPlaylistId && playlistMap[chosenPlaylistId],
+    playlistMap,
+    playlistExists,
     subscriptions,
   ])
 
