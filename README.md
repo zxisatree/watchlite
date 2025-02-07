@@ -8,7 +8,8 @@ things that are purely for Youtube's economic benefit, like video suggestions.
 WatchLite is an alternative UI for Youtube that removes these distractions for a
 clean, stress free experience.
 
-Note: Watch Later is not available as Youtube's Data V3 API does not expose it.
+Note: Watch Later and saved playlists not created by the authenticated user are
+not available as Youtube's Data V3 API does not expose it.
 
 ## Getting Started
 
@@ -23,17 +24,7 @@ Note: Watch Later is not available as Youtube's Data V3 API does not expose it.
    1. `GAPI_API_KEY`
    2. `GAPI_CLIENT_ID`
    3. `GAPI_CLIENT_SECRET`
-6. Run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+6. Run the development server with `npm run dev`
 
 To log in via OAuth, click the OAuth button in the top left. After you log in
 for the first time, you can use the Refresh OAuth Token button to request a new

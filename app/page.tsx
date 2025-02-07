@@ -29,7 +29,6 @@ export default function Page() {
   const [playlistVideoListInfo, setPlaylistVideoListInfo] =
     useState<VideoListInfo>({ videos: [], channels: {} })
 
-  // TODO: cache query
   const deduplicatedVideoListInfo = {
     videos: Array.from(
       playlistVideoListInfo.videos

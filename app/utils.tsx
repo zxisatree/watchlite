@@ -78,62 +78,30 @@ export function refreshOauthToken(
     })
 }
 
-export function sendVideoListRequest(
-  videoIds: string[],
-  setVideoResults: Dispatch<SetStateAction<gapi.client.youtube.Video[]>>,
+export function sendPlaylistListMineRequest(
+  setPlaylists: Dispatch<SetStateAction<gapi.client.youtube.Playlist[]>>,
 ) {
-  const videoListRequest = gapi.client.youtube.videos.list({
-    part: 'snippet,statistics',
-    id: videoIds.join(),
-  })
-
-  videoListRequest.then(response => {
-    const videoList = response.result
-    setVideoResults(videoList.items || [])
-  })
+  const baseParams = {
+    part: 'snippet,contentDetails',
+    mine: true,
+  }
+  gapi.client.youtube.playlists
+    .list(baseParams)
+    .then(playlistListResponse =>
+      handleNextPageResponses(
+        playlistListResponse,
+        gapi.client.youtube.playlists.list,
+        baseParams,
+      ),
+    )
+    .then(playlists => setPlaylists(playlists))
 }
 
-export function sendChannelListRequest(
-  channelIds: string[],
-  setChannelResults: Dispatch<SetStateAction<gapi.client.youtube.Channel[]>>,
-) {
-  const channelListRequest = gapi.client.youtube.channels.list({
-    part: 'snippet',
-    id: channelIds.join(),
-  })
-  channelListRequest.then(response => {
-    const channelList = response.result
-    setChannelResults(channelList.items || [])
-  })
-}
-
-export function sendSearchListRequest(
-  queryString: string,
-  setSearchResults: Dispatch<
-    SetStateAction<gapi.client.youtube.SearchResult[]>
-  >,
-) {
-  const searchListRequest = gapi.client.youtube.search.list({
-    part: 'snippet',
-    q: queryString,
-    maxResults: 10,
-  })
-
-  searchListRequest.then(response => {
-    const searchList = response.result
-    console.log(searchList)
-    setSearchResults(searchList.items || [])
-  })
-}
-
-export function sendPlaylistItemsListRequest(
+export function fetchSearchPlaylistItems(
   playlistIds: string[],
-  setPlaylistItemInfos: Dispatch<
-    SetStateAction<Map<string, PlaylistItemInfo[]>>
-  >,
-) {
+): Promise<Map<string, PlaylistItemInfo[]>> {
   // for each playlist, list playlist items, then get videos for each playlist item
-  Promise.all(
+  return Promise.all(
     playlistIds.map(playlistId =>
       gapi.client.youtube.playlistItems
         .list({
@@ -155,49 +123,130 @@ export function sendPlaylistItemsListRequest(
         }),
     ),
   ).then(playlistData => {
-    setPlaylistItemInfos(prevInfo => {
-      const newInfo = new Map(prevInfo)
-      for (let i = 0; i < playlistData.length; i++) {
-        const playlistInfo = playlistData[i]
-        if (playlistInfo.videos.length !== playlistInfo.playlistItems.length) {
-          console.error(
-            `playlistInfo.videos.length !== playlistInfo.playlistItems.length: ${playlistInfo.videos.length} !== ${playlistInfo.playlistItems.length}`,
-          )
-          return prevInfo
-        }
-
-        newInfo.set(
-          playlistIds[i],
-          (newInfo.get(playlistIds[i]) || []).concat(
-            playlistInfo.videos.map((video, index) => ({
-              playlistItem: playlistInfo.playlistItems[index],
-              video: video,
-            })),
-          ),
+    const info = new Map()
+    for (let i = 0; i < playlistData.length; i++) {
+      const playlistInfo = playlistData[i]
+      if (playlistInfo.videos.length !== playlistInfo.playlistItems.length) {
+        console.error(
+          `playlistInfo.videos.length !== playlistInfo.playlistItems.length: ${playlistInfo.videos.length} !== ${playlistInfo.playlistItems.length}`,
         )
+        return info
       }
-      return newInfo
-    })
+
+      info.set(
+        playlistIds[i],
+        (info.get(playlistIds[i]) || []).concat(
+          playlistInfo.videos.map((video, index) => ({
+            playlistItem: playlistInfo.playlistItems[index],
+            video: video,
+          })),
+        ),
+      )
+    }
+    return info
   })
 }
 
-export function sendPlaylistListMineRequest(
-  setPlaylists: Dispatch<SetStateAction<gapi.client.youtube.Playlist[]>>,
+export function fetchSearchResults(
+  query: string,
+  setSearchResults: Dispatch<SetStateAction<FullSearchResult[]>>,
 ) {
-  const baseParams = {
-    part: 'snippet,contentDetails',
-    mine: true,
-  }
-  gapi.client.youtube.playlists
-    .list(baseParams)
-    .then(playlistListResponse =>
-      handleNextPageResponses(
-        playlistListResponse,
-        gapi.client.youtube.playlists.list,
-        baseParams,
-      ),
-    )
-    .then(playlists => setPlaylists(playlists))
+  gapi.client.youtube.search
+    .list({
+      part: 'snippet',
+      q: query,
+      maxResults: 25,
+    })
+    .then(async response => {
+      const searchResults = response.result.items || []
+      const videoResults = searchResults
+        .map(searchResult => searchResult.id?.videoId)
+        .filter(isNotUndefined)
+      const channelResults = searchResults
+        .map(searchResult => searchResult.snippet?.channelId)
+        .filter(isNotUndefined)
+      const playlistResults = searchResults
+        .map(searchResult => searchResult.id?.playlistId)
+        .filter(isNotUndefined)
+
+      const videoRequest = gapi.client.youtube.videos
+        .list({
+          part: 'snippet,statistics',
+          id: videoResults.join(),
+        })
+        .then(response => {
+          return response.result.items || []
+        })
+
+      const channelRequest = gapi.client.youtube.channels
+        .list({
+          part: 'snippet',
+          id: channelResults.join(),
+        })
+        .then(response => {
+          return response.result.items || []
+        })
+
+      const playlistRequest = fetchSearchPlaylistItems(playlistResults)
+
+      return {
+        searchResults,
+        videos: await videoRequest,
+        channels: await channelRequest,
+        playlists: await playlistRequest,
+      }
+    })
+    .then(({ searchResults, videos, channels, playlists }) => {
+      const videoIdToResult = new Map()
+      for (const videoResult of videos) {
+        videoIdToResult.set(videoResult.id, videoResult)
+      }
+
+      const channelIdToResult = new Map()
+      for (const channelResult of channels) {
+        channelIdToResult.set(channelResult.id, channelResult)
+      }
+
+      const playlistIdToResult = new Map()
+      for (const [playlistId, playlistResult] of playlists) {
+        playlistIdToResult.set(playlistId, playlistResult)
+      }
+
+      setSearchResults(
+        searchResults
+          .map(searchResult => {
+            const searchResultVideoId = searchResult.id?.videoId
+            const searchResultChannelId = searchResult.snippet?.channelId
+            const searchResultPlaylistId = searchResult.id?.playlistId
+            const hasVideo = videoIdToResult.has(searchResultVideoId)
+            const hasChannel = channelIdToResult.has(searchResultChannelId)
+            const hasPlaylist = playlistIdToResult.has(searchResultPlaylistId)
+
+            if (hasVideo && hasChannel) {
+              return {
+                video: videoIdToResult.get(searchResultVideoId),
+                channel: channelIdToResult.get(searchResultChannelId),
+              }
+            } else if (hasChannel && !hasPlaylist) {
+              return {
+                channel: channelIdToResult.get(searchResultChannelId),
+              }
+            } else if (hasPlaylist) {
+              return {
+                searchResult,
+                channel: channelIdToResult.get(searchResultChannelId),
+                playlistItemInfos: playlistIdToResult.get(
+                  searchResultPlaylistId,
+                ),
+              }
+            } else {
+              console.error('invalid search result')
+              return null
+            }
+          })
+          .filter(isNotNull),
+      )
+    })
 }
 
 /**
