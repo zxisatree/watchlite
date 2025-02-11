@@ -10,14 +10,9 @@ import {
   channelAdapter,
   videoAdapter,
 } from '../utils'
-import { google } from 'googleapis'
+import { yt } from '../googleapisUtils'
 
-const yt = google.youtube({
-  version: 'v3',
-  auth: process.env.GAPI_API_KEY,
-})
-
-export default async function Page({
+export default async function ChannelPage({
   params,
 }: {
   params: Promise<{ slug: string }>

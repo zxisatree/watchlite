@@ -1,19 +1,15 @@
 'use client'
 import { useSearchParams } from 'next/navigation'
 import YouTube from 'react-youtube'
-import {
-  fetchPlaylistItems,
-  loadComments,
-  scaleWidthAndHeight,
-  stringifyDateRelatively,
-} from '@/app/utils'
+import { scaleWidthAndHeight, stringifyDateRelatively } from '@/app/utils'
+import { fetchPlaylistItems, loadComments } from '../utils'
 import { useContext, useEffect, useState } from 'react'
 import { GapiContext } from '../gapiCtxt'
 import { VideoListInfo } from '../types'
 import Link from 'next/link'
 import LoadingSpinner from '@/components/loadingSpinner'
 
-export default function Play() {
+export default function WatchPage() {
   const { gapiIsInitialised } = useContext(GapiContext)
   const searchParams = useSearchParams()
   const videoId = searchParams.get('v') || ''

@@ -2,10 +2,9 @@
 
 import { useContext, useEffect, useState } from 'react'
 import { GapiContext } from './gapiCtxt'
+import { mod, murmurHash } from './utils'
 import {
   fetchPlaylistItems,
-  mod,
-  murmurHash,
   fetchSubscriptionUploadsRequestPipeline,
 } from './utils'
 import { VideoListInfo } from './types'
