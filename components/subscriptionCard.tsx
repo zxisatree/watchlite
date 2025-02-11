@@ -3,21 +3,16 @@ import CircularImage from './circularImage'
 
 export default function SubscriptionCard({
   channel,
-  channelMap,
+  channelThumbnails,
 }: Readonly<{
   channel: gapi.client.youtube.Channel
-  channelMap: Record<string, gapi.client.youtube.Channel>
+  channelThumbnails?: gapi.client.youtube.ThumbnailDetails
 }>) {
-  // should always be defined if channels have all been fetched
-  // const linkUrl = channelDetails.snippet?.customUrl
-  const channelId = channel.id || ''
-  const channelDetails = channelMap[channelId]
-  const channelThumbnails = channelDetails.snippet?.thumbnails
   return (
     <div className='max-w-15 space-y-2 flex flex-col items-center bg-gray-300 bg-opacity-50 p-2 rounded-lg'>
       {channelThumbnails && (
         <CircularImage
-          thumbnailUrl={chooseThumbnail(channelThumbnails).url}
+          thumbnailUrl={chooseThumbnail(channelThumbnails, 'high').url}
           diameter={24}
         />
       )}

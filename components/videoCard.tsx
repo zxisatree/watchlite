@@ -22,7 +22,7 @@ export default function VideoCard({
   playlistId,
 }: VideoCardProps) {
   const thumbnailUrl = thumbnailDetails
-    ? chooseThumbnail(thumbnailDetails).url || 'default_thumbnail.png'
+    ? chooseThumbnail(thumbnailDetails, 'high').url || 'default_thumbnail.png'
     : 'default_thumbnail.png'
   const url = `/watch?v=${video.id}${playlistId ? `&list=${playlistId}` : ''}`
 

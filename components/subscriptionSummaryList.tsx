@@ -48,7 +48,11 @@ export default function SubscriptionSummaryList({
             <SubscriptionCard
               key={channel.id}
               channel={channel}
-              channelMap={channelMap}
+              channelThumbnails={
+                channel.id
+                  ? channelMap[channel.id]?.snippet?.thumbnails
+                  : undefined
+              }
             />
           ))}
       </div>
