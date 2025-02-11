@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { FullSubscription, UserContextType } from './types'
 import { GapiContext } from './gapiCtxt'
-import { fetchSubscriptions, sendPlaylistListMineRequest } from './utils'
+import { fetchSubscriptions, sendPlaylistListMineRequest } from '../utils/utils'
 
 export const UserContext = createContext<UserContextType>({
   subscriptions: [],

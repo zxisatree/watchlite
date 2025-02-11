@@ -1,6 +1,6 @@
 import SearchResult from '@/components/searchResult'
-import { keySearchResultById } from '../utils'
-import { fetchSearchResults } from '../googleapisUtils'
+import { keySearchResultById } from '../../utils/utils'
+import { fetchSearchResults } from '../../utils/googleapisUtils'
 
 export default async function ResultsPage({
   searchParams,

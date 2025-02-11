@@ -9,8 +9,8 @@ import {
   thumbnailDetailsAdapter,
   channelAdapter,
   videoAdapter,
-} from '../utils'
-import { yt } from '../googleapisUtils'
+} from '../../utils/utils'
+import { yt } from '../../utils/googleapisUtils'
 
 export default async function ChannelPage({
   params,

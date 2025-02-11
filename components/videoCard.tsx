@@ -5,7 +5,7 @@ import {
   chooseThumbnail,
   stringifyCount,
   stringifyDateRelatively,
-} from '../app/utils'
+} from '../utils/utils'
 import ResultCard from './resultCard'
 
 type VideoCardProps = {

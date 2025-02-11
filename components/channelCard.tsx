@@ -1,4 +1,4 @@
-import { chooseThumbnail, stringifyCount } from '@/app/utils'
+import { chooseThumbnail, stringifyCount } from '@/utils/utils'
 import Link from 'next/link'
 import CircularImage from './circularImage'
 import ResultCard from './resultCard'

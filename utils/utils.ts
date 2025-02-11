@@ -7,7 +7,7 @@ import {
   PlaylistSearchResult,
   VideoListInfo,
   VideoSearchResult,
-} from './types'
+} from '../app/types'
 import { GaxiosPromise, GaxiosResponse } from 'gaxios'
 import { youtube_v3 } from 'googleapis'
 

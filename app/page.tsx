@@ -2,11 +2,11 @@
 
 import { useContext, useEffect, useState } from 'react'
 import { GapiContext } from './gapiCtxt'
-import { mod, murmurHash } from './utils'
+import { mod, murmurHash } from '../utils/utils'
 import {
   fetchPlaylistItems,
   fetchSubscriptionUploadsRequestPipeline,
-} from './utils'
+} from '../utils/utils'
 import { VideoListInfo } from './types'
 import SubscriptionSummaryList from '@/components/subscriptionSummaryList'
 import { colouredActiveTiles, colouredTiles } from './tailwindStyles'
@@ -17,7 +17,7 @@ import LoadingSpinner from '@/components/loadingSpinner'
 import { maxVideosDisplayed, gapiRequestLimit } from './constants'
 import { UserContext } from './userCtxt'
 
-export default function Page() {
+export default function HomePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const chosenPlaylistId = searchParams.get('playlistId')

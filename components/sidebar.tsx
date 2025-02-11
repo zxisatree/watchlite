@@ -5,7 +5,7 @@ import {
   colouredSidebarPlaylistButtons,
 } from '@/app/tailwindStyles'
 import { UserContext } from '@/app/userCtxt'
-import { mod, murmurHash } from '@/app/utils'
+import { mod, murmurHash } from '@/utils/utils'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useContext } from 'react'

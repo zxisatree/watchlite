@@ -1,4 +1,4 @@
-import { parse8601PtTime } from '@/app/utils'
+import { parse8601PtTime } from '@/utils/utils'
 import Link from 'next/link'
 import ResultCard from './resultCard'
 import Image from 'next/image'

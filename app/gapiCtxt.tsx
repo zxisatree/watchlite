@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react'
 import { GapiContextType, OauthTokenState } from './types'
-import { initGapi } from './utils'
+import { initGapi } from '../utils/utils'
 import { gapiRequestLimit } from './constants'
 
 type GapiCtxtWrapperProps = {

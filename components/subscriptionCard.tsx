@@ -1,4 +1,4 @@
-import { chooseThumbnail } from '@/app/utils'
+import { chooseThumbnail } from '@/utils/utils'
 import CircularImage from './circularImage'
 
 export default function SubscriptionCard({

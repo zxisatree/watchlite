@@ -1,6 +1,6 @@
 /** WARNING: Only import this file in Server Components! googleapis requires modules only found in NextJS */
 import { google } from 'googleapis'
-import { FullSearchResult, PlaylistItemInfo } from './types'
+import { FullSearchResult, PlaylistItemInfo } from '../app/types'
 import { isDefined } from './utils'
 export const yt = google.youtube({
   version: 'v3',

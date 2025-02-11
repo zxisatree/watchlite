@@ -1,6 +1,6 @@
 'use client'
 
-import { stringifyCount } from '@/app/utils'
+import { stringifyCount } from '@/utils/utils'
 import CircularImage from './circularImage'
 
 export default function ChannelHead({

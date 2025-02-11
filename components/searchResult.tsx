@@ -7,7 +7,7 @@ import {
   isChannelSearchResult,
   isPlaylistSearchResult,
   isVideoSearchResult,
-} from '@/app/utils'
+} from '@/utils/utils'
 
 export default function SearchResult({
   searchResult,
