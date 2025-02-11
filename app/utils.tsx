@@ -1,11 +1,4 @@
-import {
-  DependencyList,
-  Dispatch,
-  EffectCallback,
-  SetStateAction,
-  useEffect,
-  useRef,
-} from 'react'
+import { Dispatch, SetStateAction } from 'react'
 import {
   ChannelSearchResult,
   FullSearchResult,
@@ -16,6 +9,8 @@ import {
   VideoListInfo,
   VideoSearchResult,
 } from './types'
+import { GaxiosPromise, GaxiosResponse } from 'gaxios'
+import { youtube_v3 } from 'googleapis'
 
 export function initGapi(
   apiKey: string,
@@ -624,6 +619,56 @@ export function handleNextPageResponses<T>(
   }
 }
 
+type PaginatedResponseNode<T> = { items?: T[]; nextPageToken?: string | null }
+/**
+ * Recursively flattens responses from gapi requests that paginate results.
+ * For googleapis node.js client
+ *
+ * @param response Parameter of .then callback
+ * @param gapiRequestFn googleapis function to send request. e.g. yt.playlists.list. Must be bound to the parent object e.g. yt.playlists
+ * @param baseParams Parameters to send to gapiRequestFn
+ * @param acc Accumulator array for results
+ * @param maxResults Maximum number of results to retrieve
+ * @returns Array of results
+ */
+export function handleNextPageResponsesNode<T>(
+  response: GaxiosResponse<PaginatedResponseNode<T>>,
+  gapiRequestFn: (
+    params: typeof baseParams,
+  ) => GaxiosPromise<PaginatedResponseNode<T>>,
+  baseParams: {
+    part: string[]
+  },
+  maxResults?: number,
+  acc: T[] = [],
+): Promise<T[]> | T[] {
+  const responseResult = response.data
+  const responseItems = responseResult.items
+
+  if (!responseItems || (maxResults && acc.length >= maxResults)) {
+    return acc
+  }
+
+  const nextPageToken = responseResult.nextPageToken
+  if (nextPageToken) {
+    const nextPageParams = {
+      ...baseParams,
+      pageToken: nextPageToken,
+    }
+    return gapiRequestFn(nextPageParams).then(response =>
+      handleNextPageResponsesNode(
+        response,
+        gapiRequestFn,
+        baseParams,
+        maxResults,
+        acc.concat(responseItems),
+      ),
+    )
+  } else {
+    return acc.concat(responseItems)
+  }
+}
+
 export function handlePlaylistItemsResponse(
   response: gapi.client.Response<gapi.client.youtube.PlaylistItemListResponse>,
   baseParams: {
@@ -661,9 +706,160 @@ export function handlePlaylistItemsResponse(
   }
 }
 
+/**
+ * The following functions are for using components that require gapi types with Server Components, that uses googleapis.
+ * googleapis have similar types to gapi, but many types are labelled as `T | undefined | null` instead of `T | undefined`.
+ * We can also use the utility type `NonNullable<T>` to convert `T | undefined | null` to `T | undefined`.
+ */
+
+export function videoAdapter(
+  video?: youtube_v3.Schema$Video,
+): gapi.client.youtube.Video {
+  return {
+    id: video?.id || undefined,
+    snippet: videoSnippetAdapter(video?.snippet) || undefined,
+    contentDetails:
+      videoContentDetailsAdapter(video?.contentDetails) || undefined,
+    statistics: videoStatisticsAdapter(video?.statistics) || undefined,
+  }
+}
+
+export function videoSnippetAdapter(
+  snippet?: youtube_v3.Schema$VideoSnippet,
+): gapi.client.youtube.VideoSnippet {
+  return {
+    channelId: snippet?.channelId || undefined,
+    channelTitle: snippet?.channelTitle || undefined,
+    description: snippet?.description || undefined,
+    liveBroadcastContent: snippet?.liveBroadcastContent || undefined,
+    publishedAt: snippet?.publishedAt || undefined,
+    thumbnails: thumbnailDetailsAdapter(snippet?.thumbnails),
+    title: snippet?.title || undefined,
+  }
+}
+
+export function videoContentDetailsAdapter(
+  contentDetails?: youtube_v3.Schema$VideoContentDetails,
+): gapi.client.youtube.VideoContentDetails {
+  return {
+    caption: contentDetails?.caption || undefined,
+    definition: contentDetails?.definition || undefined,
+    dimension: contentDetails?.dimension || undefined,
+    duration: contentDetails?.duration || undefined,
+    licensedContent: contentDetails?.licensedContent || undefined,
+    projection: contentDetails?.projection || undefined,
+    regionRestriction:
+      videoContentDetailsRegionRestrictionAdapter(
+        contentDetails?.regionRestriction,
+      ) || undefined,
+  }
+}
+
+export function videoContentDetailsRegionRestrictionAdapter(
+  regionRestriction?: youtube_v3.Schema$VideoContentDetailsRegionRestriction,
+): gapi.client.youtube.VideoContentDetailsRegionRestriction {
+  return {
+    allowed: regionRestriction?.allowed || undefined,
+    blocked: regionRestriction?.blocked || undefined,
+  }
+}
+
+export function videoStatisticsAdapter(
+  statistics?: youtube_v3.Schema$VideoStatistics,
+): gapi.client.youtube.VideoStatistics {
+  return {
+    commentCount: statistics?.commentCount || undefined,
+    dislikeCount: statistics?.dislikeCount || undefined,
+    favoriteCount: statistics?.favoriteCount || undefined,
+    likeCount: statistics?.likeCount || undefined,
+    viewCount: statistics?.viewCount || undefined,
+  }
+}
+
+export function channelAdapter(
+  channel?: youtube_v3.Schema$Channel,
+): gapi.client.youtube.Channel {
+  return {
+    id: channel?.id || undefined,
+    snippet: channelSnippetAdapter(channel?.snippet) || undefined,
+    contentDetails:
+      channelContentDetailsAdapter(channel?.contentDetails) || undefined,
+    statistics: channelStatisticsAdapter(channel?.statistics) || undefined,
+  }
+}
+
+export function channelSnippetAdapter(
+  snippet?: youtube_v3.Schema$ChannelSnippet,
+): gapi.client.youtube.ChannelSnippet {
+  return {
+    country: snippet?.country || undefined,
+    customUrl: snippet?.customUrl || undefined,
+    description: snippet?.description || undefined,
+    localized: channelSnippetLocalizedAdapter(snippet?.localized) || undefined,
+    publishedAt: snippet?.publishedAt || undefined,
+    thumbnails: thumbnailDetailsAdapter(snippet?.thumbnails),
+    title: snippet?.title || undefined,
+  }
+}
+
+export function channelSnippetLocalizedAdapter(
+  localized?: youtube_v3.Schema$ChannelLocalization,
+): gapi.client.youtube.ChannelLocalization {
+  return {
+    description: localized?.description || undefined,
+    title: localized?.title || undefined,
+  }
+}
+
+export function channelContentDetailsAdapter(
+  contentDetails?: youtube_v3.Schema$ChannelContentDetails,
+): gapi.client.youtube.ChannelContentDetails {
+  return {
+    relatedPlaylists: contentDetails?.relatedPlaylists || undefined,
+  }
+}
+
+export function channelStatisticsAdapter(
+  statistics?: youtube_v3.Schema$ChannelStatistics,
+): gapi.client.youtube.ChannelStatistics {
+  return {
+    commentCount: statistics?.commentCount || undefined,
+    hiddenSubscriberCount: statistics?.hiddenSubscriberCount || undefined,
+    subscriberCount: statistics?.subscriberCount || undefined,
+    videoCount: statistics?.videoCount || undefined,
+    viewCount: statistics?.viewCount || undefined,
+  }
+}
+
+export function thumbnailDetailsAdapter(
+  thumbnailDetails?: youtube_v3.Schema$ThumbnailDetails,
+): gapi.client.youtube.ThumbnailDetails {
+  return {
+    default: thumbnailAdapter(thumbnailDetails?.default),
+    high: thumbnailAdapter(thumbnailDetails?.high),
+    maxres: thumbnailAdapter(thumbnailDetails?.maxres),
+    medium: thumbnailAdapter(thumbnailDetails?.medium),
+    standard: thumbnailAdapter(thumbnailDetails?.standard),
+  }
+}
+
+export function thumbnailAdapter(
+  thumbnail?: youtube_v3.Schema$Thumbnail,
+): gapi.client.youtube.Thumbnail {
+  return {
+    height: thumbnail?.height || undefined,
+    url: thumbnail?.url || undefined,
+    width: thumbnail?.width || undefined,
+  }
+}
+
 /*************************** TEXT RELATED HELPERS ******************************/
 export function scaleWidthAndHeight(factor: number) {
   return { height: 390 * factor, width: 640 * factor }
+}
+
+export function stripLeadingAt(handle: string) {
+  return handle.replace(/^@/, '')
 }
 
 export function stringifyCount(
@@ -801,49 +997,4 @@ export function isNotUndefined<T>(s: T | undefined): s is T {
 
 export function isNotNull<T>(s: T | null): s is T {
   return s !== null
-}
-
-/*************************** REACT HELPERS ******************************/
-export function usePrevious<T>(value: T, initialValue: T) {
-  const ref = useRef(initialValue)
-  useEffect(() => {
-    ref.current = value
-  })
-  return ref.current
-}
-
-export function useEffectDebugger(
-  effectHook: EffectCallback,
-  dependencies: DependencyList,
-  dependencyNames: string[] = [],
-) {
-  const previousDeps = usePrevious(dependencies, [])
-
-  const changedDeps = dependencies.reduce(
-    (
-      acc: Record<string | number, { before: unknown; after: unknown }>,
-      dependency,
-      index,
-    ) => {
-      if (dependency !== previousDeps[index]) {
-        const keyName = dependencyNames[index] || index
-        return {
-          ...acc,
-          [keyName]: {
-            before: previousDeps[index],
-            after: dependency,
-          },
-        }
-      }
-
-      return acc
-    },
-    {},
-  )
-
-  if (Object.keys(changedDeps).length) {
-    console.log('[use-effect-debugger] ', changedDeps)
-  }
-
-  useEffect(effectHook, dependencies)
 }

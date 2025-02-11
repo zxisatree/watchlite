@@ -32,12 +32,12 @@ export default function Page() {
   const deduplicatedVideoListInfo = {
     videos: Array.from(
       playlistVideoListInfo.videos
-        .reduce((acc: Map<string, gapi.client.youtube.Video>, video) => {
+        .reduce((acc, video) => {
           if (video && video.id && !(video.id in acc)) {
             acc.set(video.id, video)
           }
           return acc
-        }, new Map())
+        }, new Map<string, gapi.client.youtube.Video>())
         .values(),
     ),
     channels: playlistVideoListInfo.channels,

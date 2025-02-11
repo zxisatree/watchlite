@@ -1,12 +1,16 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { MdOutlineVisibility, MdCalendarToday, MdThumbUp } from 'react-icons/md'
-import { stringifyCount, stringifyDateRelatively } from '../app/utils'
+import {
+  chooseThumbnail,
+  stringifyCount,
+  stringifyDateRelatively,
+} from '../app/utils'
 import ResultCard from './resultCard'
 
 type VideoCardProps = {
-  thumbnailDetails: gapi.client.youtube.ThumbnailDetails | undefined
   video: gapi.client.youtube.Video
+  thumbnailDetails?: gapi.client.youtube.ThumbnailDetails
   channel?: gapi.client.youtube.Channel
   playlistId?: string
 }
@@ -17,13 +21,10 @@ export default function VideoCard({
   channel,
   playlistId,
 }: VideoCardProps) {
-  const defaultVideoThumbnail = thumbnailDetails?.high
-  const defaultUrl = defaultVideoThumbnail?.url
+  const thumbnailUrl = thumbnailDetails
+    ? chooseThumbnail(thumbnailDetails).url || 'default_thumbnail.png'
+    : 'default_thumbnail.png'
   const url = `/watch?v=${video.id}${playlistId ? `&list=${playlistId}` : ''}`
-
-  // console.log('video title: ', video.snippet?.title)
-  // console.log('channel:')
-  // console.log(channel)
 
   // height is usually 360, width is usually 480
   return (
@@ -34,12 +35,10 @@ export default function VideoCard({
       >
         <Image
           className='p-2 rounded-2xl'
-          src={defaultUrl || '/default_thumbnail.png'}
+          src={thumbnailUrl}
           alt={`${video.snippet?.title} thumbnail`}
-          layout='fill'
-          objectFit='cover'
-          // width={defaultVideoThumbnail ? defaultVideoThumbnail.width : 480}
-          // height={defaultVideoThumbnail ? defaultVideoThumbnail.height : 360}
+          fill
+          style={{ objectFit: 'cover' }}
         />
       </Link>
       {/* Unflex */}
