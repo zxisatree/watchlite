@@ -1,13 +1,59 @@
 /** WARNING: Only import this file in Server Components! googleapis requires modules only found in NextJS */
-import { google } from 'googleapis'
-import { FullSearchResult, PlaylistItemInfo } from '../app/types'
-import { isDefined } from './utils'
+import { google, youtube_v3 } from 'googleapis'
+import { FullSearchResult, PlaylistItemInfo, VideoListInfo } from '../app/types'
+import { channelAdapter, isDefined, playlistItemAdapter, videoAdapter } from './utils'
+
 export const yt = google.youtube({
   version: 'v3',
   auth: process.env.GAPI_API_KEY,
 })
 
-export function fetchSearchPlaylistItems(
+export function fetchSinglePlaylistItems(playlistId: string): Promise<VideoListInfo> {
+  return yt.playlistItems
+    .list({
+      part: ['snippet', 'contentDetails'],
+      playlistId,
+    })
+    .then(async (playlistItemsResponse) => {
+      const playlistItems = playlistItemsResponse.data.items
+      const videosResponse = await yt.videos.list({
+        part: ['snippet', 'contentDetails'],
+        id: playlistItems
+          ?.map(playlistItem => playlistItem.snippet?.resourceId?.videoId).filter(isDefined),
+      })
+      const channelsResponse = await yt.channels.list({
+        part: ['snippet'],
+        id: playlistItems
+          ?.map(playlistItem => playlistItem.snippet?.channelId).filter(isDefined),
+      })
+
+      return {
+        videos: videosResponse.data.items || [],
+        channels: (channelsResponse.data.items || []).reduce((acc, channel) => {
+          const channelId = channel.id
+          if (channelId) {
+            acc.set(channelId, channel)
+          } else {
+            console.error('channelId not found:')
+            console.error(channel)
+          }
+          return acc
+        }, new Map<string, youtube_v3.Schema$Channel>()),
+      }
+    }).then(({ videos, channels }) => {
+      // Adapter to convert gapi.client types to googleapis types
+      const newChannels = {} as Record<string, gapi.client.youtube.Channel>
+      for (const [channelId, channel] of channels) {
+        newChannels[channelId] = channelAdapter(channel)
+      }
+      return {
+        videos: videos.map(videoAdapter),
+        channels: newChannels,
+      }
+    })
+}
+
+export function fetchPlaylistItemsForSearch(
   playlistIds: string[]
 ): Promise<Map<string, PlaylistItemInfo[]>> {
   // for each playlist, list playlist items, then get videos for each playlist item
@@ -24,6 +70,7 @@ export function fetchSearchPlaylistItems(
           id: playlistItems
             ?.map(playlistItem => playlistItem.snippet?.resourceId?.videoId).filter(isDefined),
         })
+
         return {
           playlistItems: playlistItems || [],
           videos: videosResponse.data.items || [],
@@ -31,7 +78,7 @@ export function fetchSearchPlaylistItems(
       })
     )
   ).then(playlistData => {
-    const info = new Map()
+    const info = new Map<string, PlaylistItemInfo[]>()
     for (let i = 0; i < playlistData.length; i++) {
       const playlistInfo = playlistData[i]
       if (playlistInfo.videos.length !== playlistInfo.playlistItems.length) {
@@ -45,8 +92,8 @@ export function fetchSearchPlaylistItems(
         playlistIds[i],
         (info.get(playlistIds[i]) || []).concat(
           playlistInfo.videos.map((video, index) => ({
-            playlistItem: playlistInfo.playlistItems[index],
-            video: video,
+            playlistItem: playlistItemAdapter(playlistInfo.playlistItems[index]),
+            video: videoAdapter(video),
           }))
         )
       )
@@ -92,7 +139,7 @@ export function fetchSearchResults(query: string): Promise<FullSearchResult[]> {
           return response.data.items || []
         })
 
-      const playlistRequest = fetchSearchPlaylistItems(playlistResults)
+      const playlistRequest = fetchPlaylistItemsForSearch(playlistResults)
 
       return {
         searchResults,

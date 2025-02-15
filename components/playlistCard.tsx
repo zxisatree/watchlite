@@ -2,16 +2,13 @@ import { parse8601PtTime } from '@/utils/utils'
 import Link from 'next/link'
 import ResultCard from './resultCard'
 import Image from 'next/image'
-import { PlaylistItemInfo } from '@/app/types'
+import { PlaylistSearchResult } from '@/app/types'
 
+// TODO: destructure params
 export default function PlaylistCard({
-  searchResult,
-  channel,
-  playlistItemInfos,
+  playlistSearchResult: { searchResult, channel, playlistItemInfos },
 }: {
-  searchResult: gapi.client.youtube.SearchResult
-  channel: gapi.client.youtube.Channel
-  playlistItemInfos: PlaylistItemInfo[]
+  playlistSearchResult: PlaylistSearchResult
 }) {
   const firstItem = playlistItemInfos[0]
   const firstPlaylistItem = firstItem.playlistItem
@@ -32,10 +29,8 @@ export default function PlaylistCard({
             '/default_thumbnail.png'
           }
           alt={`${searchResult.snippet?.title} thumbnail`}
-          layout='fill'
-          objectFit='cover'
-          // width={defaultVideoThumbnail ? defaultVideoThumbnail.width : 480}
-          // height={defaultVideoThumbnail ? defaultVideoThumbnail.height : 360}
+          fill
+          style={{ objectFit: 'cover' }}
         />
       </Link>
       {/* Unflex */}
@@ -84,12 +79,12 @@ export default function PlaylistCard({
               </Link>
             )
           })}
-          <Link
+          {/* <Link
             href={`/playlist?list=${playlistId}`}
             className='mt-4 font-semibold text-gray-600 hover:text-gray-800'
           >
             View full playlist
-          </Link>
+          </Link> */}
         </div>
       </div>
     </ResultCard>

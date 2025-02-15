@@ -29,6 +29,7 @@ export type SubscriptionApiResult = {
   result: gapi.client.youtube.Subscription
 }
 
+/** Describes a playlist on home page and watch page, where videos need the creator's channel information */
 export type VideoListInfo = {
   videos: gapi.client.youtube.Video[]
   channels: Record<string, gapi.client.youtube.Channel>

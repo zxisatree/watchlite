@@ -7,7 +7,7 @@ import { refreshOauthToken } from '@/utils/utils'
 import { blueButton, yellowButton } from '@/app/tailwindStyles'
 import { MdMenu, MdSearch } from 'react-icons/md'
 import { randomBytes } from 'crypto'
-import { baseUrl, csrfStateKey } from '@/app/constants'
+import { baseUrl, csrfStateKey, oauthScopes } from '@/app/constants'
 import Link from 'next/link'
 import { IconContext } from 'react-icons'
 import { IoMdCheckmarkCircle, IoMdCloseCircle } from 'react-icons/io'
@@ -48,7 +48,7 @@ export default function Header({
       response_type: 'code',
       access_type: 'offline',
       prompt: 'consent',
-      scope: 'https://www.googleapis.com/auth/youtube.readonly',
+      scope: oauthScopes,
     })
     link.search = params.toString()
     router.push(link.toString())

@@ -39,7 +39,7 @@ function initGapiFromCtxt(
   envVars: GapiCtxtWrapperProps['envVars'],
   setGapiIsInitialised: Dispatch<SetStateAction<boolean>>,
 ) {
-  initGapi(envVars.GAPI_API_KEY, envVars.GAPI_CLIENT_ID, setGapiIsInitialised)
+  initGapi(envVars.GAPI_API_KEY, setGapiIsInitialised)
 }
 
 /** Returns false if too many requests have been sent */

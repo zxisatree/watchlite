@@ -10,10 +10,10 @@ import {
 } from '../app/types'
 import { GaxiosPromise, GaxiosResponse } from 'gaxios'
 import { youtube_v3 } from 'googleapis'
+import { maxVideosDisplayed } from '@/app/constants'
 
 export function initGapi(
   apiKey: string,
-  clientId: string,
   setIsInitialised: Dispatch<SetStateAction<boolean>>,
 ) {
   if (apiKey === '') {
@@ -29,6 +29,7 @@ export function initGapi(
         'https://youtube.googleapis.com/$discovery/rest?version=v3',
       ],
     })
+    console.log("initialised gapi")
     setIsInitialised(true)
   })
 }
@@ -144,16 +145,9 @@ export function chooseThumbnail(
 
 type PaginatedResponse<T> = { items?: T[]; nextPageToken?: string }
 /**
- * Recursively flattens responses from gapi requests that paginate results.
- *
- * @param response Parameter of .then callback
- * @param gapiRequestFn gapi function to send request. e.g. gapi.client.youtube.playlists.list
- * @param baseParams Parameters to send to gapiRequestFn
- * @param acc Accumulator array for results
- * @param maxResults Maximum number of results to retrieve
- * @returns Array of results
+ * Recursive helper for handleNextPageResponses
  */
-export function handleNextPageResponses<T>(
+function handleNextPageResponsesHelper<T>(
   response: gapi.client.Response<PaginatedResponse<T>>,
   gapiRequestFn: (
     params: typeof baseParams,
@@ -161,7 +155,7 @@ export function handleNextPageResponses<T>(
   baseParams: {
     part: string
   },
-  maxResults?: number,
+  maxResults: number = 50,
   acc: T[] = [],
 ): Promise<T[]> | T[] {
   const responseResult = response.result
@@ -178,7 +172,7 @@ export function handleNextPageResponses<T>(
       pageToken: nextPageToken,
     }
     return gapiRequestFn(nextPageParams).then(response =>
-      handleNextPageResponses(
+      handleNextPageResponsesHelper(
         response,
         gapiRequestFn,
         baseParams,
@@ -191,19 +185,30 @@ export function handleNextPageResponses<T>(
   }
 }
 
-type PaginatedResponseNode<T> = { items?: T[]; nextPageToken?: string | null }
 /**
  * Recursively flattens responses from gapi requests that paginate results.
- * For googleapis node.js client
  *
  * @param response Parameter of .then callback
- * @param gapiRequestFn googleapis function to send request. e.g. yt.playlists.list. Must be bound to the parent object e.g. yt.playlists
+ * @param gapiRequestFn gapi function to send request. e.g. gapi.client.youtube.playlists.list
  * @param baseParams Parameters to send to gapiRequestFn
- * @param acc Accumulator array for results
  * @param maxResults Maximum number of results to retrieve
  * @returns Array of results
  */
-export function handleNextPageResponsesNode<T>(
+export function handleNextPageResponses<T>(
+  response: gapi.client.Response<PaginatedResponse<T>>,
+  gapiRequestFn: (
+    params: typeof baseParams,
+  ) => gapi.client.Request<PaginatedResponse<T>>,
+  baseParams: {
+    part: string
+  },
+  maxResults: number = maxVideosDisplayed,
+): Promise<T[]> | T[] {
+  return handleNextPageResponsesHelper(response, gapiRequestFn, baseParams, maxResults, [])
+}
+
+type PaginatedResponseNode<T> = { items?: T[]; nextPageToken?: string | null }
+function handleNextPageResponsesNodeHelper<T>(
   response: GaxiosResponse<PaginatedResponseNode<T>>,
   gapiRequestFn: (
     params: typeof baseParams,
@@ -211,7 +216,7 @@ export function handleNextPageResponsesNode<T>(
   baseParams: {
     part: string[]
   },
-  maxResults?: number,
+  maxResults: number = maxVideosDisplayed,
   acc: T[] = [],
 ): Promise<T[]> | T[] {
   const responseResult = response.data
@@ -228,7 +233,7 @@ export function handleNextPageResponsesNode<T>(
       pageToken: nextPageToken,
     }
     return gapiRequestFn(nextPageParams).then(response =>
-      handleNextPageResponsesNode(
+      handleNextPageResponsesNodeHelper(
         response,
         gapiRequestFn,
         baseParams,
@@ -241,41 +246,27 @@ export function handleNextPageResponsesNode<T>(
   }
 }
 
-export function handlePlaylistItemsResponse(
-  response: gapi.client.Response<gapi.client.youtube.PlaylistItemListResponse>,
+/**
+ * Recursively flattens responses from gapi requests that paginate results.
+ * For googleapis node.js client
+ *
+ * @param response Parameter of .then callback
+ * @param gapiRequestFn googleapis function to send request. e.g. yt.playlists.list. Must be bound to the parent object e.g. yt.playlists
+ * @param baseParams Parameters to send to gapiRequestFn
+ * @param maxResults Maximum number of results to retrieve
+ * @returns Array of results
+ */
+export function handleNextPageResponsesNode<T>(
+  response: GaxiosResponse<PaginatedResponseNode<T>>,
+  gapiRequestFn: (
+    params: typeof baseParams,
+  ) => GaxiosPromise<PaginatedResponseNode<T>>,
   baseParams: {
-    part: string
-    playlistId: string | undefined
+    part: string[]
   },
-  acc: gapi.client.youtube.PlaylistItem[],
-):
-  | Promise<gapi.client.youtube.PlaylistItem[]>
-  | gapi.client.youtube.PlaylistItem[] {
-  const responseResult = response.result
-  const responseItems = responseResult.items
-  if (!responseItems) {
-    return acc
-  }
-
-  // send requests for all playlist items
-  const nextPageToken = responseResult.nextPageToken
-  if (nextPageToken) {
-    const nextPageParams = {
-      ...baseParams,
-      pageToken: nextPageToken,
-    }
-    return gapi.client.youtube.playlistItems
-      .list(nextPageParams)
-      .then(response =>
-        handlePlaylistItemsResponse(
-          response,
-          baseParams,
-          acc.concat(responseItems),
-        ),
-      )
-  } else {
-    return acc.concat(responseItems)
-  }
+  maxResults: number = maxVideosDisplayed,
+): Promise<T[]> | T[] {
+  return handleNextPageResponsesNodeHelper(response, gapiRequestFn, baseParams, maxResults, [])
 }
 
 /**
@@ -400,6 +391,76 @@ export function channelStatisticsAdapter(
     subscriberCount: statistics?.subscriberCount || undefined,
     videoCount: statistics?.videoCount || undefined,
     viewCount: statistics?.viewCount || undefined,
+  }
+}
+
+export function playlistSnippetAdapter(
+  snippet?: youtube_v3.Schema$PlaylistSnippet,
+): gapi.client.youtube.PlaylistSnippet {
+  return {
+    channelId: snippet?.channelId || undefined,
+    channelTitle: snippet?.channelTitle || undefined,
+    description: snippet?.description || undefined,
+    localized: playlistSnippetLocalizedAdapter(snippet?.localized) || undefined,
+    publishedAt: snippet?.publishedAt || undefined,
+    thumbnails: thumbnailDetailsAdapter(snippet?.thumbnails),
+    title: snippet?.title || undefined,
+  }
+}
+
+export function playlistSnippetLocalizedAdapter(
+  localized?: youtube_v3.Schema$PlaylistLocalization,
+): gapi.client.youtube.PlaylistLocalization {
+  return {
+    description: localized?.description || undefined,
+    title: localized?.title || undefined,
+  }
+}
+
+export function playlistItemAdapter(
+  playlistItem?: youtube_v3.Schema$PlaylistItem,
+): gapi.client.youtube.PlaylistItem {
+  return {
+    id: playlistItem?.id || undefined,
+    snippet: playlistItemSnippetAdapter(playlistItem?.snippet) || undefined,
+    contentDetails: playlistItemContentDetailsAdapter(playlistItem?.contentDetails) || undefined,
+  }
+}
+
+export function playlistItemSnippetAdapter(
+  snippet?: youtube_v3.Schema$PlaylistItemSnippet,
+): gapi.client.youtube.PlaylistItemSnippet {
+  return {
+    channelId: snippet?.channelId || undefined,
+    channelTitle: snippet?.channelTitle || undefined,
+    description: snippet?.description || undefined,
+    playlistId: snippet?.playlistId || undefined,
+    position: snippet?.position || undefined,
+    publishedAt: snippet?.publishedAt || undefined,
+    resourceId: playlistItemResourceAdapter(snippet?.resourceId),
+    thumbnails: thumbnailDetailsAdapter(snippet?.thumbnails),
+    title: snippet?.title || undefined,
+  }
+}
+
+export function playlistItemResourceAdapter(
+  resourceId?: youtube_v3.Schema$ResourceId,
+): gapi.client.youtube.ResourceId {
+  return {
+    kind: resourceId?.kind || undefined,
+    videoId: resourceId?.videoId || undefined,
+  }
+}
+
+export function playlistItemContentDetailsAdapter(
+  contentDetails?: youtube_v3.Schema$PlaylistItemContentDetails,
+): gapi.client.youtube.PlaylistItemContentDetails {
+  return {
+    endAt: contentDetails?.endAt || undefined,
+    note: contentDetails?.note || undefined,
+    startAt: contentDetails?.startAt || undefined,
+    videoId: contentDetails?.videoId || undefined,
+    videoPublishedAt: contentDetails?.videoPublishedAt || undefined,
   }
 }
 
@@ -748,7 +809,7 @@ export function fetchPlaylistItems(
   }
   gapi.client.youtube.playlistItems
     .list(baseParams)
-    .then(response => handlePlaylistItemsResponse(response, baseParams, []))
+    .then(response => handleNextPageResponses(response, gapi.client.youtube.playlistItems.list, baseParams, 50))
     .then(playlistItems => {
       // Collect all videos and channels
       const videos = playlistItems
@@ -819,6 +880,7 @@ export function fetchPlaylistItems(
       setIsPlaylistLoading(false)
     })
 }
+
 /** Limit to 50 comments for now */
 export function loadComments(
   videoId: string,

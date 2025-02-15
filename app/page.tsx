@@ -42,11 +42,6 @@ export default function HomePage() {
     channels: playlistVideoListInfo.channels,
   }
 
-  // console.log('playlistVideoListInfo:')
-  // console.log(playlistVideoListInfo)
-  // console.log('deduplicatedVideoListInfo:')
-  // console.log(deduplicatedVideoListInfo)
-
   const channelMap = subscriptions.reduce(
     (acc: Record<string, gapi.client.youtube.Channel>, subscription) => {
       const channel = subscription.channel

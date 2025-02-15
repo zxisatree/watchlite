@@ -29,3 +29,11 @@ not available as Youtube's Data V3 API does not expose it.
 To log in via OAuth, click the OAuth button in the top left. After you log in
 for the first time, you can use the Refresh OAuth Token button to request a new
 valid OAuth token. Check the status of your OAuth token on the home page `/`.
+
+## Privacy
+
+For Google API's OAuth scopes,
+"https://www.googleapis.com/auth/youtube.readonly" is required to view your
+playlists and subscriptions, and
+"https://www.googleapis.com/auth/youtube.force-ssl" is required to retrieve
+comments.

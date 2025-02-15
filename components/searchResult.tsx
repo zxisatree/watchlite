@@ -23,13 +23,7 @@ export default function SearchResult({
       />
     )
   } else if (isPlaylistSearchResult(searchResult)) {
-    return (
-      <PlaylistCard
-        searchResult={searchResult.searchResult}
-        channel={searchResult.channel}
-        playlistItemInfos={searchResult.playlistItemInfos}
-      />
-    )
+    return <PlaylistCard playlistSearchResult={searchResult} />
   } else if (isChannelSearchResult(searchResult)) {
     return <ChannelCard channel={searchResult.channel} />
   } else {
